@@ -658,6 +658,7 @@ dependencies = [
  "dl-apps",
  "dl-atlas",
  "dl-core",
+ "dl-engine",
  "dl-metrics",
  "dl-platform",
  "dl-platform-mac",
@@ -669,6 +670,17 @@ dependencies = [
  "tauri-build",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "dl-engine"
+version = "0.1.0"
+dependencies = [
+ "dl-core",
+ "dl-platform",
+ "dl-wm",
+ "serde",
+ "ts-rs",
 ]
 
 [[package]]

@@ -9,7 +9,6 @@ dist/
 
 # Tauri
 apps/desktop/gen/
-apps/desktop/icons/
 
 # Editors / OS
 .DS_Store

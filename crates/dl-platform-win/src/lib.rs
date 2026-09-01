@@ -8,7 +8,13 @@
 //! workspace builds anywhere.
 
 #[cfg(windows)]
+mod error;
+#[cfg(windows)]
+mod monitors;
+#[cfg(windows)]
 mod shell;
+#[cfg(windows)]
+mod windows_enum;
 
 #[cfg(windows)]
 pub use shell::WindowsShell;

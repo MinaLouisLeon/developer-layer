@@ -73,3 +73,30 @@ body {
   font-family: var(--atlas-font-mono);
   font-size: var(--atlas-text-sm);
 }
+
+.shell__pass {
+  display: flex;
+  flex-direction: column;
+  gap: var(--atlas-space-4);
+  margin-top: var(--atlas-space-8);
+}
+
+.shell__pass button {
+  align-self: flex-start;
+  background: var(--atlas-raised);
+  color: var(--atlas-accent);
+  border: 1px solid var(--atlas-accent-dim);
+  border-radius: var(--atlas-radius);
+  padding: var(--atlas-space-2) var(--atlas-space-4);
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--atlas-duration) var(--atlas-ease);
+}
+
+.shell__pass button:hover,
+.shell__pass button:focus-visible {
+  border-color: var(--atlas-accent);
+}

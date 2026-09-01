@@ -9,8 +9,12 @@
 //! implementation rather than a rewrite. Expect roughly 60% parity: macOS
 //! window management requires Accessibility permissions and has no AppBar
 //! equivalent.
+//!
+//! The trait reports **facts** and performs **actions**. It never decides
+//! policy — whether a window should tile, where it belongs, and whether it
+//! needs moving are all `dl-wm`'s business.
 
-use dl_core::{Monitor, Rect, WindowId, WindowRecord};
+use dl_core::{Monitor, Rect, WindowAttributes, WindowId};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlatformError {
@@ -40,35 +44,36 @@ pub enum DockEdge {
 /// Everything the shell needs from the host operating system.
 pub trait ShellIntegration: Send + Sync {
     /// Enumerate connected displays with stable, EDID-derived identities.
+    ///
+    /// Implementations must not derive identity from `\\.\DISPLAY1`-style
+    /// names, which Windows reassigns across reboots and replugs.
     fn monitors(&self) -> Result<Vec<Monitor>>;
 
-    /// Enumerate manageable top-level windows.
+    /// Observe every top-level window as raw facts.
     ///
-    /// Implementations must exclude cloaked windows. Windows 11 keeps cloaked
-    /// ghost windows around for suspended UWP apps, and including them fills
-    /// the dock with phantom entries.
-    fn windows(&self) -> Result<Vec<WindowRecord>>;
+    /// Implementations report; they do not filter on policy. The one exception
+    /// is windows that are not top-level at all. Cloaked windows **must** be
+    /// reported with `is_cloaked` set rather than dropped, so the classifier
+    /// can distinguish "ignored because cloaked" from "no longer exists".
+    fn windows(&self) -> Result<Vec<WindowAttributes>>;
 
     /// Move and resize a window without activating it.
     ///
-    /// Implementations must compensate for the invisible resize border:
-    /// `GetWindowRect` on Windows 10 and 11 reports bounds roughly 7px larger
-    /// than the visible frame, so tiling to raw values produces uneven gaps and
-    /// apparently overlapping windows. Compare against the DWM extended frame
-    /// bounds and correct per window.
-    fn set_window_bounds(&self, window: WindowId, bounds: Rect) -> Result<()>;
+    /// `outer` is the raw rect for `SetWindowPos` — the caller has already
+    /// applied invisible-border compensation, so implementations must not
+    /// adjust it again.
+    fn set_window_bounds(&self, window: WindowId, outer: Rect) -> Result<()>;
 
     fn focus_window(&self, window: WindowId) -> Result<()>;
     fn minimize_window(&self, window: WindowId) -> Result<()>;
     fn restore_window(&self, window: WindowId) -> Result<()>;
 
-    /// Prevent a window from maximising.
+    /// Remove the maximise affordance.
     ///
-    /// Enforcement is reactive: strip the maximise affordance, then watch for
-    /// the maximised state and restore. Preemptive blocking would require
-    /// hooking another process's window procedure through DLL injection, which
-    /// this project avoids for antivirus reasons. A single-frame flicker when
-    /// an app maximises itself from saved state is expected.
+    /// Enforcement is reactive by design: this strips the style, and the
+    /// reconcile pass catches anything that maximises itself programmatically.
+    /// Blocking it preemptively would need a window-procedure hook via DLL
+    /// injection, which this project avoids for antivirus reasons.
     fn suppress_maximize(&self, window: WindowId) -> Result<()>;
 
     /// Reserve screen space for the dock so maximised windows do not cover it.
@@ -91,10 +96,10 @@ impl ShellIntegration for NullShell {
     fn monitors(&self) -> Result<Vec<Monitor>> {
         Ok(Vec::new())
     }
-    fn windows(&self) -> Result<Vec<WindowRecord>> {
+    fn windows(&self) -> Result<Vec<WindowAttributes>> {
         Ok(Vec::new())
     }
-    fn set_window_bounds(&self, _window: WindowId, _bounds: Rect) -> Result<()> {
+    fn set_window_bounds(&self, _window: WindowId, _outer: Rect) -> Result<()> {
         Ok(())
     }
     fn focus_window(&self, _window: WindowId) -> Result<()> {

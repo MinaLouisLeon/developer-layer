@@ -23,6 +23,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::list_monitors,
+            commands::list_windows,
+            commands::run_pass,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the Tauri application");

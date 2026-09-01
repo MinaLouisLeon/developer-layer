@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { atlas } from "@developer-layer/design";
-import type { Config, Monitor } from "@developer-layer/shared";
+import type { Config, Monitor, PassReport } from "@developer-layer/shared";
 
-import { getConfig, listMonitors } from "./ipc";
+import { getConfig, listMonitors, runPass } from "./ipc";
 
 /**
  * Phase 00 shell. Proves the whole spine end to end: the Rust core owns the
@@ -13,6 +13,7 @@ import { getConfig, listMonitors } from "./ipc";
 export function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
+  const [pass, setPass] = useState<PassReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function App() {
       {error ? (
         <p className="shell__error">Backend unreachable: {error}</p>
       ) : (
+        <>
         <dl className="shell__facts">
           <div>
             <dt>Displays detected</dt>
@@ -72,6 +74,23 @@ export function App() {
             </dd>
           </div>
         </dl>
+
+        <section className="shell__pass">
+          <button type="button" onClick={() => { void runPass().then(setPass).catch((e) => setError(String(e))); }}>
+            Run engine pass
+          </button>
+          {pass ? (
+            <dl className="shell__facts">
+              <div><dt>Windows seen</dt><dd>{pass.observed}</dd></div>
+              <div><dt>Tiled</dt><dd>{pass.tiled}</dd></div>
+              <div><dt>Floating</dt><dd>{pass.floating}</dd></div>
+              <div><dt>Ignored</dt><dd>{pass.ignored}</dd></div>
+              <div><dt>Operations</dt><dd>{pass.operations}</dd></div>
+              <div><dt>Refused</dt><dd>{pass.failures.length}</dd></div>
+            </dl>
+          ) : null}
+        </section>
+        </>
       )}
     </main>
   );

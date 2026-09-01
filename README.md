@@ -29,6 +29,7 @@ crates/
   dl-platform-win  windows-rs implementation (the only crate touching an HWND)
   dl-platform-mac  stub, phase 10
   dl-wm            slot engine — pure logic, unit-testable anywhere
+  dl-engine        pass orchestration: observe, classify, resolve, reconcile
   dl-metrics       telemetry sampling, phase 03
   dl-apps          application resolution and icons, phase 04
   dl-atlas         command registry, wake word, speech, phases 07-09
@@ -56,6 +57,11 @@ Requires Node ≥ 20.11 and a stable Rust toolchain.
 cargo test
 cargo clippy --all-targets -- -D warnings
 
+# Type-check the Win32 crate without a Windows machine. cargo check does not
+# link, so a Windows target compiles here; only runtime behaviour needs Windows.
+rustup target add x86_64-pc-windows-gnu
+cargo clippy --target x86_64-pc-windows-gnu -p dl-platform-win --all-targets -- -D warnings
+
 # Regenerate TypeScript after changing a type in dl-core
 npm run gen:types
 
@@ -77,7 +83,7 @@ which is the first real check for anything touching Win32.
 | Phase | Contents |
 | ----- | -------- |
 | 00 | Foundations — workspaces, type bridge, slot engine, CI |
-| 01 | Slot engine against real windows, no-maximise enforcement, float rules |
+| 01 | Slot engine against real windows, no-maximise enforcement, float rules ✅ |
 | 02 | Layout edit mode, per-app slots, display connect/disconnect, settings |
 | 03 | Telemetry tile |
 | 04 | Dock as launcher |

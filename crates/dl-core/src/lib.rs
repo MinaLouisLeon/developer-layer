@@ -8,6 +8,7 @@
 //! including Linux CI. Only `dl-platform-win` touches an `HWND`.
 
 pub mod app;
+pub mod attributes;
 pub mod config;
 pub mod geometry;
 pub mod monitor;
@@ -15,6 +16,7 @@ pub mod slot;
 pub mod window;
 
 pub use app::{AppId, AppRef, PinnedApp};
+pub use attributes::{FramePadding, WindowAttributes};
 pub use config::Config;
 pub use geometry::{NormalizedRect, Rect};
 pub use monitor::{DisplaySet, Monitor, MonitorId};

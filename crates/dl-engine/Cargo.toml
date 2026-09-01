@@ -1,0 +1,15 @@
+[package]
+name = "dl-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Slot engine orchestration: observe, classify, resolve, reconcile, apply."
+
+[dependencies]
+dl-core = { workspace = true }
+dl-platform = { workspace = true }
+dl-wm = { workspace = true }
+serde = { workspace = true }
+ts-rs = { workspace = true }

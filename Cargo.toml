@@ -6,6 +6,7 @@ members = [
     "crates/dl-platform-win",
     "crates/dl-platform-mac",
     "crates/dl-wm",
+    "crates/dl-engine",
     "crates/dl-metrics",
     "crates/dl-apps",
     "crates/dl-atlas",
@@ -21,6 +22,7 @@ default-members = [
     "crates/dl-platform-win",
     "crates/dl-platform-mac",
     "crates/dl-wm",
+    "crates/dl-engine",
     "crates/dl-metrics",
     "crates/dl-apps",
     "crates/dl-atlas",
@@ -39,6 +41,7 @@ dl-platform = { path = "crates/dl-platform" }
 dl-platform-win = { path = "crates/dl-platform-win" }
 dl-platform-mac = { path = "crates/dl-platform-mac" }
 dl-wm = { path = "crates/dl-wm" }
+dl-engine = { path = "crates/dl-engine" }
 dl-metrics = { path = "crates/dl-metrics" }
 dl-apps = { path = "crates/dl-apps" }
 dl-atlas = { path = "crates/dl-atlas" }

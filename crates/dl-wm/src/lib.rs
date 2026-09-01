@@ -7,9 +7,23 @@
 //!
 //! The engine decides *what should be where*. Actually moving windows is the
 //! platform layer's job.
+//!
+//! A pass runs in four stages:
+//!
+//! 1. [`rules`] classifies each observed window — ignore, float, or tile.
+//! 2. [`resolve`] assigns tiled windows to slots and collapses empty ones.
+//! 3. [`display_change`] handles displays appearing and disappearing.
+//! 4. [`reconcile`] diffs desired against observed and emits the minimum set of
+//!    platform calls, with [`frame`] correcting for the invisible resize border.
 
 pub mod display_change;
+pub mod frame;
+pub mod reconcile;
 pub mod resolve;
+pub mod rules;
 
 pub use display_change::{DisplayChange, DisplayChangeOutcome, WindowAction};
+pub use frame::{approximately_equal, compensate, visible_frame_of};
+pub use reconcile::{reconcile, Operation, DEFAULT_TOLERANCE};
 pub use resolve::{Placement, Resolver};
+pub use rules::{Classification, IgnoreReason, Rules};

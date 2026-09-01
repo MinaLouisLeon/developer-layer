@@ -30,6 +30,17 @@ raise it explicitly rather than quietly building something else.
   `dl-core`, and commit the result; CI fails on stale bindings.
 - **`apps/desktop` is excluded from default workspace members** because Tauri
   needs webkit2gtk on Linux. Use `cargo test` locally, `--workspace` on Windows.
+  Keep it thin: anything not Tauri-specific belongs in `dl-engine`, which builds
+  and tests on Linux. Logic trapped in `apps/desktop` is logic nothing verifies
+  until a Windows runner picks it up.
+- **The Win32 crate is type-checked on Linux** via
+  `cargo clippy --target x86_64-pc-windows-gnu -p dl-platform-win`. `cargo check`
+  does not link, so this catches wrong `windows-rs` signatures without a Windows
+  machine. Runtime behaviour still needs real hardware.
+- **Never use `Path::file_name` on a Windows path.** It is host-dependent — on
+  Linux it does not treat `\` as a separator, so tests would pass while
+  production silently failed to match. Use `dl_engine::basename`-style splitting
+  on both separators.
 - **`MinimizeReason` must be set correctly at every minimise site.** The
   reconnect rule depends on distinguishing a user minimise from a
   disconnect orphan; guessing after the fact is impossible.
@@ -64,3 +75,6 @@ rather than an error:
 - Platform methods that are not yet implemented return
   `PlatformError::Unsupported` naming the phase, rather than panicking or
   silently succeeding.
+- Every `unsafe` block carries a `SAFETY:` comment stating why it holds.
+- A stage of the engine pipeline that can be pure logic is pure logic. The
+  platform layer reports facts and performs actions; it never decides policy.

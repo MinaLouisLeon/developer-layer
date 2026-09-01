@@ -32,9 +32,19 @@ jobs:
       - name: Tests
         run: cargo test
 
+      # cargo check does not link, so the Win32 crate type-checks here even
+      # though it cannot run. This catches wrong windows-rs signatures on the
+      # fast runner instead of on a Windows one.
+      - name: Type-check the Windows platform crate
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          cargo clippy --target x86_64-pc-windows-gnu \
+            -p dl-core -p dl-platform -p dl-platform-win -p dl-wm -p dl-engine \
+            --all-targets -- -D warnings
+
       - name: Generated TypeScript is up to date
         run: |
-          cargo test -p dl-core export_bindings
+          cargo test -p dl-core -p dl-engine export_bindings
           git diff --exit-code -- apps/ui/shared/src/generated \
             || (echo "::error::Generated bindings are stale. Run 'npm run gen:types' and commit." && exit 1)
 

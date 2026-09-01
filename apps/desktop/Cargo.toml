@@ -14,6 +14,7 @@ tauri-build = { version = "2", features = [] }
 dl-core = { workspace = true }
 dl-platform = { workspace = true }
 dl-wm = { workspace = true }
+dl-engine = { workspace = true }
 dl-metrics = { workspace = true }
 dl-apps = { workspace = true }
 dl-atlas = { workspace = true }
