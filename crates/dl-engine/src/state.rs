@@ -272,6 +272,13 @@ impl Engine {
         ))
     }
 
+    /// Capture a window as PNG bytes for a dock hover preview.
+    pub fn capture_window(&self, window: WindowId) -> Result<Vec<u8>> {
+        self.shell
+            .capture_window(window)
+            .map_err(|e| EngineError::Platform(e.to_string()))
+    }
+
     /// Record which window holds the foreground, from a WinEvent hook.
     pub fn set_foreground(&mut self, window: Option<WindowId>) {
         self.foreground = window;
@@ -476,6 +483,9 @@ mod tests {
         }
         fn suppress_maximize(&self, _w: WindowId) -> PlatformResult<()> {
             Ok(())
+        }
+        fn capture_window(&self, _w: WindowId) -> PlatformResult<Vec<u8>> {
+            Err(PlatformError::Unsupported("test"))
         }
         fn reserve_dock_space(&self, _e: DockEdge, _t: i32) -> PlatformResult<()> {
             Err(PlatformError::Unsupported("test"))

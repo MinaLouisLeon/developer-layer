@@ -149,6 +149,10 @@ impl ShellIntegration for WindowsShell {
         Ok(())
     }
 
+    fn capture_window(&self, window: WindowId) -> Result<Vec<u8>> {
+        crate::thumbnails::capture_window(handle(window)?)
+    }
+
     fn reserve_dock_space(&self, edge: DockEdge, thickness: i32) -> Result<()> {
         let hwnd = self.dock_window()?;
 

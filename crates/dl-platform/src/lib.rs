@@ -76,6 +76,13 @@ pub trait ShellIntegration: Send + Sync {
     /// injection, which this project avoids for antivirus reasons.
     fn suppress_maximize(&self, window: WindowId) -> Result<()>;
 
+    /// Capture a window as PNG bytes, for a dock hover preview.
+    ///
+    /// Returns an error for a window with no visible area — a minimised or
+    /// suspended window has nothing to capture, which is routine rather than a
+    /// fault.
+    fn capture_window(&self, window: WindowId) -> Result<Vec<u8>>;
+
     /// Reserve screen space for the dock so maximised windows do not cover it.
     fn reserve_dock_space(&self, edge: DockEdge, thickness: i32) -> Result<()>;
     fn release_dock_space(&self) -> Result<()>;
@@ -113,6 +120,11 @@ impl ShellIntegration for NullShell {
     }
     fn suppress_maximize(&self, _window: WindowId) -> Result<()> {
         Ok(())
+    }
+    fn capture_window(&self, _window: WindowId) -> Result<Vec<u8>> {
+        Err(PlatformError::Unsupported(
+            "capture_window: no windows to capture on this platform",
+        ))
     }
     fn reserve_dock_space(&self, _edge: DockEdge, _thickness: i32) -> Result<()> {
         Ok(())

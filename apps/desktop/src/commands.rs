@@ -11,7 +11,8 @@
 use std::sync::Mutex;
 
 use dl_core::{
-    AppId, Config, MetricsSnapshot, Monitor, PinnedApp, SlotId, SlotLayout, WindowAttributes,
+    AppId, Config, DockAction, DockEntry, MetricsSnapshot, Monitor, PinnedApp, SlotId, SlotLayout,
+    WindowAttributes, WindowId,
 };
 use dl_engine::{Engine, PassReport};
 use dl_wm::edit::{Axis, Edge};
@@ -371,25 +372,19 @@ pub fn click_dock_entry(
 }
 
 /// Capture a window as a PNG data URL for a hover preview.
+///
+/// `None` rather than an error when there is nothing to capture: a minimised or
+/// suspended window is routine, and a preview that cannot be taken is not worth
+/// an error banner.
 #[tauri::command]
-pub fn window_thumbnail(window: u64) -> Result<Option<String>, String> {
-    #[cfg(windows)]
-    {
-        use windows::Win32::Foundation::HWND;
-        let hwnd = HWND(window as *mut core::ffi::c_void);
-        match dl_platform_win::capture_window(hwnd) {
-            Ok(png) => Ok(Some(format!("data:image/png;base64,{}", base64(&png)))),
-            // A suspended or minimised window has nothing to capture; that is
-            // routine, not an error worth surfacing.
-            Err(_) => Ok(None),
-        }
-    }
-
-    #[cfg(not(windows))]
-    {
-        let _ = window;
-        Ok(None)
-    }
+pub fn window_thumbnail(
+    state: tauri::State<'_, AppState>,
+    window: u64,
+) -> Result<Option<String>, String> {
+    Ok(engine(&state)?
+        .capture_window(WindowId(window))
+        .ok()
+        .map(|png| format!("data:image/png;base64,{}", base64(&png))))
 }
 
 /// Turn native-taskbar replacement on or off.

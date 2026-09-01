@@ -31,12 +31,17 @@ raise it explicitly rather than quietly building something else.
 - **`apps/desktop` is excluded from default workspace members** because Tauri
   needs webkit2gtk on Linux. Use `cargo test` locally, `--workspace` on Windows.
   Keep it thin: anything not Tauri-specific belongs in `dl-engine`, which builds
-  and tests on Linux. Logic trapped in `apps/desktop` is logic nothing verifies
-  until a Windows runner picks it up.
-- **The Win32 crate is type-checked on Linux** via
-  `cargo clippy --target x86_64-pc-windows-gnu -p dl-platform-win`. `cargo check`
-  does not link, so this catches wrong `windows-rs` signatures without a Windows
-  machine. Runtime behaviour still needs real hardware.
+  and tests on Linux. In particular `apps/desktop` must never name the `windows`
+  crate — reaching for an `HWND` there breaks the platform boundary, and the
+  operation belongs on `ShellIntegration` instead.
+- **The whole workspace type-checks on Linux for Windows** via
+  `cargo clippy --target x86_64-pc-windows-gnu --workspace --all-targets`.
+  `cargo check` does not link, and mingw
+  (`binutils-mingw-w64-x86-64`, `gcc-mingw-w64-x86-64`) supplies the resource
+  compiler `tauri-build` needs, so even `apps/desktop` is covered. Run this
+  before every push: without it `apps/desktop` is invisible until a Windows
+  runner picks it up, which is how a broken import once reached CI. Runtime
+  behaviour still needs real hardware.
 - **Never use `Path::file_name` on a Windows path.** It is host-dependent — on
   Linux it does not treat `\` as a separator, so tests would pass while
   production silently failed to match. Use `dl_engine::basename`-style splitting
