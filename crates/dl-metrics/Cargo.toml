@@ -11,3 +11,16 @@ description = "Telemetry sampling for Developer Layer."
 dl-core = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+sysinfo = "0.33"
+
+# NVML loads nvml.dll / libnvidia-ml.so at runtime rather than link time, so
+# this compiles without an NVIDIA card present and simply reports nothing.
+nvml-wrapper = "0.11"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_System_Performance",
+] }

@@ -25,6 +25,7 @@ fn main() {
         }
     };
 
+    let metrics = dl_metrics::shared(&config.telemetry);
     let engine = dl_engine::Engine::new(shell, config);
     tracing::info!(
         monitors = engine.monitors().len(),
@@ -33,7 +34,14 @@ fn main() {
     );
 
     tauri::Builder::default()
-        .manage(commands::AppState::new(engine))
+        .setup({
+            let metrics = metrics.clone();
+            move |app| {
+                spawn_sampler(app.handle().clone(), metrics);
+                Ok(())
+            }
+        })
+        .manage(commands::AppState::new(engine, metrics))
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::list_monitors,
@@ -47,7 +55,39 @@ fn main() {
             commands::assign_app,
             commands::save_layout,
             commands::is_dirty,
+            commands::latest_metrics,
+            commands::metrics_history,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the Tauri application");
+}
+
+/// Sample telemetry on its own thread and push each snapshot to the frontend.
+///
+/// Pushing rather than polling is deliberate: the UI never asks for data it
+/// already has, and the ring buffer in Rust keeps history across panel
+/// remounts. The thread is detached — it ends with the process.
+fn spawn_sampler(app: tauri::AppHandle, metrics: dl_metrics::SharedMetrics) {
+    std::thread::Builder::new()
+        .name("dl-telemetry".into())
+        .spawn(move || {
+            use tauri::Emitter;
+
+            loop {
+                let (snapshot, interval) = {
+                    let Ok(mut service) = metrics.lock() else {
+                        // A poisoned lock means a sampler panic; stopping is
+                        // better than spinning on a broken service.
+                        break;
+                    };
+                    (service.tick(), service.interval_ms())
+                };
+
+                // A closed window is not an error worth logging every second.
+                let _ = app.emit("telemetry", &snapshot);
+
+                std::thread::sleep(std::time::Duration::from_millis(interval));
+            }
+        })
+        .expect("failed to spawn the telemetry thread");
 }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Config, Monitor, PassReport, SlotLayout } from "@developer-layer/shared";
 
 import { LayoutEditor } from "./LayoutEditor";
+import { Telemetry } from "./Telemetry";
 import { getConfig, getLayout, listMonitors, runPass, syncDisplays } from "./ipc";
 
 /**
@@ -43,10 +44,12 @@ export function App() {
       <header className="shell__head">
         <span className="shell__mark">ATLAS</span>
         <h1>Developer Layer</h1>
-        <p className="shell__phase">Phase 02 — layouts</p>
+        <p className="shell__phase">Phase 03 — telemetry</p>
       </header>
 
       {error ? <p className="shell__error">{error}</p> : null}
+
+      <Telemetry />
 
       <dl className="shell__facts">
         <div>

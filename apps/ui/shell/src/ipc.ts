@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 import type {
   Config,
+  MetricsSnapshot,
   Monitor,
   PassReport,
   SlotLayout,
@@ -78,4 +80,34 @@ export function saveLayout(): Promise<void> {
 
 export function isDirty(): Promise<boolean> {
   return invoke<boolean>("is_dirty");
+}
+
+// ---- telemetry ----
+
+/**
+ * Subscribe to pushed telemetry samples. Returns an unsubscribe function.
+ *
+ * The backend pushes on its own interval rather than the UI polling, so the
+ * sampling rate is owned by one place and the UI never asks for data it has.
+ */
+export function onTelemetry(
+  handler: (snapshot: MetricsSnapshot) => void,
+): () => void {
+  const pending = listen<MetricsSnapshot>("telemetry", (event) =>
+    handler(event.payload),
+  );
+
+  return () => {
+    void pending.then((unlisten) => unlisten());
+  };
+}
+
+/** The most recent sample, for a panel that mounts between pushes. */
+export function latestMetrics(): Promise<MetricsSnapshot | null> {
+  return invoke<MetricsSnapshot | null>("latest_metrics");
+}
+
+/** The newest `count` samples, oldest first. */
+export function metricsHistory(count: number): Promise<MetricsSnapshot[]> {
+  return invoke<MetricsSnapshot[]>("metrics_history", { count });
 }

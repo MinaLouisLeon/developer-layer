@@ -55,6 +55,13 @@ raise it explicitly rather than quietly building something else.
 - **Every exported struct sets `#[serde(rename_all = "camelCase")]`.** One that
   did not (`Monitor`) shipped snake_case into TypeScript and only surfaced when
   a component tried to read it.
+- **An unmeasurable metric is `None`, never `0`.** `0°C` on an integrated GPU
+  reads as a measurement; a dash reads as the gap it is. PDH gives utilisation
+  and VRAM for every vendor; temperature, power, clocks and fans are NVML-only.
+- **`u64` crosses to TypeScript as `bigint`.** ts-rs is conservative because the
+  type exceeds JS safe integers, but Tauri's transport is JSON so the runtime
+  value is a number. Coerce through `num()` in the UI rather than assuming
+  either.
 
 ## Known Win32 traps
 
@@ -93,3 +100,8 @@ rather than an error:
   debounce rules are tested rather than eyeballed on a running desktop.
 - Config is never silently reset. A corrupt file is a startup error, because it
   holds every layout the user arranged.
+- Telemetry is pushed, never polled: the backend owns the interval, and history
+  lives in the Rust ring buffer so a remounted panel loses nothing.
+- Gauges draw to Canvas. CSS filter glow on an always-visible widget
+  re-rasterises every frame on every display — the cost a system monitor must
+  not impose on the system it measures.

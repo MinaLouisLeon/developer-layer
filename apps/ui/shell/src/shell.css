@@ -215,3 +215,97 @@ body {
   font-family: var(--atlas-font-ui);
   font-size: var(--atlas-text-sm);
 }
+
+/* ---- telemetry tile ---- */
+
+.telemetry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--atlas-space-4);
+  padding: var(--atlas-space-4);
+  background: var(--atlas-surface);
+  border: 1px solid var(--atlas-hairline);
+}
+
+.telemetry--waiting { align-items: center; }
+
+.telemetry__waiting {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--atlas-text-faint);
+}
+
+.telemetry__row { display: flex; flex-wrap: wrap; gap: var(--atlas-space-6); }
+
+.ring { margin: 0; display: flex; align-items: center; gap: var(--atlas-space-3); }
+.ring__canvas { display: block; }
+
+.ring__caption { display: flex; flex-direction: column; gap: 1px; }
+
+.ring__value {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-lg);
+  font-variant-numeric: tabular-nums;
+  color: var(--atlas-text);
+}
+
+.ring__label {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--atlas-accent);
+}
+
+.ring__detail { font-size: var(--atlas-text-xs); color: var(--atlas-text-muted); }
+
+/* Per-core bars: dense enough to read core count at a glance. */
+.telemetry__cores {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 30px;
+}
+
+.corebar {
+  flex: 1 1 4px;
+  min-width: 3px;
+  max-width: 14px;
+  height: 100%;
+  background: var(--atlas-void);
+  display: flex;
+  align-items: flex-end;
+}
+
+.corebar__fill { width: 100%; transition: height var(--atlas-duration-fast) linear; }
+
+.telemetry__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--atlas-space-3);
+  margin: 0;
+  padding-top: var(--atlas-space-3);
+  border-top: 1px solid var(--atlas-hairline);
+}
+
+.telemetry__stat { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.telemetry__stat dt {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  letter-spacing: 0.08em;
+  color: var(--atlas-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telemetry__stat dd {
+  margin: 0;
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--atlas-text);
+}

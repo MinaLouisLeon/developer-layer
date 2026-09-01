@@ -11,14 +11,19 @@ pub mod app;
 pub mod attributes;
 pub mod config;
 pub mod geometry;
+pub mod metrics;
 pub mod monitor;
 pub mod slot;
 pub mod window;
 
 pub use app::{AppId, AppRef, PinnedApp};
 pub use attributes::{FramePadding, WindowAttributes};
-pub use config::Config;
+pub use config::{AtlasConfig, Config, TelemetryConfig};
 pub use geometry::{NormalizedRect, Rect};
+pub use metrics::{
+    CpuMetrics, DiskMetrics, GpuKind, GpuMetrics, GpuVendor, MemoryMetrics, MetricsSnapshot,
+    NetworkMetrics,
+};
 pub use monitor::{DisplaySet, Monitor, MonitorId};
 pub use slot::{LayoutError, Slot, SlotId, SlotLayout};
 pub use window::{MinimizeReason, TileMode, WindowId, WindowRecord};

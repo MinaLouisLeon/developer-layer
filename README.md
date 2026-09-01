@@ -31,7 +31,7 @@ crates/
   dl-wm            slot engine — pure logic, unit-testable anywhere
   dl-engine        pass orchestration and engine state across passes
   dl-config        TOML persistence under %APPDATA%
-  dl-metrics       telemetry sampling, phase 03
+  dl-metrics       telemetry sampling: sysinfo, DXGI, PDH, NVML
   dl-apps          application resolution and icons, phase 04
   dl-atlas         command registry, wake word, speech, phases 07-09
 apps/
@@ -86,7 +86,7 @@ which is the first real check for anything touching Win32.
 | 00 | Foundations — workspaces, type bridge, slot engine, CI |
 | 01 | Slot engine against real windows, no-maximise enforcement, float rules ✅ |
 | 02 | Layout edit mode, per-app slots, display connect/disconnect, settings ✅ |
-| 03 | Telemetry tile |
+| 03 | Telemetry tile ✅ |
 | 04 | Dock as launcher |
 | 05 | Taskbar replacement and its guardian process |
 | 06 | mino-workbench embed and archive actions |

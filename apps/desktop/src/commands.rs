@@ -10,18 +10,20 @@
 
 use std::sync::Mutex;
 
-use dl_core::{AppId, Config, Monitor, SlotId, SlotLayout, WindowAttributes};
+use dl_core::{AppId, Config, MetricsSnapshot, Monitor, SlotId, SlotLayout, WindowAttributes};
 use dl_engine::{Engine, PassReport};
 use dl_wm::edit::{Axis, Edge};
 
 pub struct AppState {
     engine: Mutex<Engine>,
+    metrics: dl_metrics::SharedMetrics,
 }
 
 impl AppState {
-    pub fn new(engine: Engine) -> Self {
+    pub fn new(engine: Engine, metrics: dl_metrics::SharedMetrics) -> Self {
         Self {
             engine: Mutex::new(engine),
+            metrics,
         }
     }
 }
@@ -150,4 +152,35 @@ pub fn save_layout(state: tauri::State<'_, AppState>) -> Result<(), String> {
 #[tauri::command]
 pub fn is_dirty(state: tauri::State<'_, AppState>) -> Result<bool, String> {
     Ok(engine(&state)?.is_dirty())
+}
+
+// ---- telemetry ----
+
+/// The most recent sample, or `None` before the first tick.
+#[tauri::command]
+pub fn latest_metrics(
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<MetricsSnapshot>, String> {
+    Ok(state
+        .metrics
+        .lock()
+        .map_err(|e| e.to_string())?
+        .latest()
+        .cloned())
+}
+
+/// The newest `count` samples, oldest first.
+///
+/// Bounded so a caller cannot pull the whole buffer on every animation frame —
+/// history lives in Rust precisely so it is not shipped repeatedly.
+#[tauri::command]
+pub fn metrics_history(
+    state: tauri::State<'_, AppState>,
+    count: usize,
+) -> Result<Vec<MetricsSnapshot>, String> {
+    Ok(state
+        .metrics
+        .lock()
+        .map_err(|e| e.to_string())?
+        .recent(count.min(600)))
 }
