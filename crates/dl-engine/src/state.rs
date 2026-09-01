@@ -228,6 +228,15 @@ impl Engine {
             .collect())
     }
 
+    /// Replace the pinned application list, returning config for persistence.
+    ///
+    /// Slot bindings survive: they reference an `AppId`, not a path, so an app
+    /// rediscovered at a new location keeps the slot it was assigned.
+    pub fn set_pinned_apps(&mut self, apps: Vec<dl_core::PinnedApp>) -> &Config {
+        self.config.pinned_apps = apps;
+        &self.config
+    }
+
     // ---- edit mode ----
 
     pub fn move_border(&mut self, slot: &SlotId, edge: Edge, delta: f32) -> Result<()> {

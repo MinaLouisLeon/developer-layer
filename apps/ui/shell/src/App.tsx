@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { Config, Monitor, PassReport, SlotLayout } from "@developer-layer/shared";
+import type {
+  Config,
+  Monitor,
+  PassReport,
+  PinnedApp,
+  SlotLayout,
+} from "@developer-layer/shared";
 
+import { Dock } from "./Dock";
 import { LayoutEditor } from "./LayoutEditor";
 import { Telemetry } from "./Telemetry";
 import { getConfig, getLayout, listMonitors, runPass, syncDisplays } from "./ipc";
@@ -15,6 +22,7 @@ export function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [layout, setLayout] = useState<SlotLayout | null>(null);
+  const [apps, setApps] = useState<PinnedApp[]>([]);
   const [pass, setPass] = useState<PassReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +35,7 @@ export function App() {
     setConfig(nextConfig);
     setMonitors(nextMonitors);
     setLayout(nextLayout);
+    setApps(nextConfig.pinnedApps);
   }, []);
 
   useEffect(() => {
@@ -44,12 +53,14 @@ export function App() {
       <header className="shell__head">
         <span className="shell__mark">ATLAS</span>
         <h1>Developer Layer</h1>
-        <p className="shell__phase">Phase 03 — telemetry</p>
+        <p className="shell__phase">Phase 04 — dock</p>
       </header>
 
       {error ? <p className="shell__error">{error}</p> : null}
 
       <Telemetry />
+
+      <Dock apps={apps} onApps={setApps} onError={setError} />
 
       <dl className="shell__facts">
         <div>
@@ -103,7 +114,7 @@ export function App() {
         <LayoutEditor
           layout={layout}
           monitors={monitors}
-          apps={config?.pinnedApps ?? []}
+          apps={apps}
           onLayout={setLayout}
           onError={setError}
         />

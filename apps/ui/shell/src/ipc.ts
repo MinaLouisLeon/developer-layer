@@ -6,6 +6,7 @@ import type {
   MetricsSnapshot,
   Monitor,
   PassReport,
+  PinnedApp,
   SlotLayout,
   WindowAttributes,
 } from "@developer-layer/shared";
@@ -110,4 +111,30 @@ export function latestMetrics(): Promise<MetricsSnapshot | null> {
 /** The newest `count` samples, oldest first. */
 export function metricsHistory(count: number): Promise<MetricsSnapshot[]> {
   return invoke<MetricsSnapshot[]>("metrics_history", { count });
+}
+
+// ---- dock ----
+
+/** Which known applications are installed, without pinning them. */
+export function discoverApps(): Promise<PinnedApp[]> {
+  return invoke<PinnedApp[]>("discover_apps");
+}
+
+/**
+ * An application's icon as a PNG data URL, or null if it has none.
+ *
+ * Extraction is a COM round trip on the Rust side, cached to disk after the
+ * first call and keyed on app identity so a Squirrel update does not orphan it.
+ */
+export function appIcon(app: string): Promise<string | null> {
+  return invoke<string | null>("app_icon", { app });
+}
+
+export function launchApp(app: string): Promise<void> {
+  return invoke<void>("launch_app", { app });
+}
+
+/** Re-run discovery, replace the pinned list and persist it. */
+export function refreshPinnedApps(): Promise<PinnedApp[]> {
+  return invoke<PinnedApp[]>("refresh_pinned_apps");
 }

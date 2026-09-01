@@ -309,3 +309,100 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--atlas-text);
 }
+
+/* ---- dock ---- */
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: var(--atlas-space-4);
+  padding: var(--atlas-space-3);
+  background: var(--atlas-surface);
+  border: 1px solid var(--atlas-hairline);
+}
+
+.dock--empty { gap: var(--atlas-space-4); }
+
+.dock__hint { color: var(--atlas-text-muted); font-size: var(--atlas-text-sm); }
+
+.dock__items {
+  display: flex;
+  gap: var(--atlas-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.dock__app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--atlas-space-1);
+  width: 76px;
+  padding: var(--atlas-space-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--atlas-radius-lg);
+  cursor: pointer;
+  color: var(--atlas-text-muted);
+  transition:
+    border-color var(--atlas-duration-fast) var(--atlas-ease),
+    background var(--atlas-duration-fast) var(--atlas-ease);
+}
+
+.dock__app:hover,
+.dock__app:focus-visible {
+  background: var(--atlas-raised);
+  border-color: var(--atlas-accent-dim);
+  color: var(--atlas-text);
+}
+
+/* Confirms the click landed; the app's window may take seconds to appear. */
+.dock__app--busy { border-color: var(--atlas-accent); }
+
+.dock__icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+/* Fallback while an icon is loading, or for an app that has none. */
+.dock__initial {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--atlas-raised);
+  border: 1px solid var(--atlas-hairline-strong);
+  border-radius: var(--atlas-radius);
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-lg);
+  color: var(--atlas-accent);
+}
+
+.dock__name {
+  font-size: var(--atlas-text-xs);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock__refresh,
+.dock--empty button {
+  background: var(--atlas-raised);
+  color: var(--atlas-accent);
+  border: 1px solid var(--atlas-accent-dim);
+  border-radius: var(--atlas-radius);
+  padding: var(--atlas-space-2) var(--atlas-space-3);
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  align-self: center;
+}

@@ -55,6 +55,9 @@ raise it explicitly rather than quietly building something else.
 - **Every exported struct sets `#[serde(rename_all = "camelCase")]`.** One that
   did not (`Monitor`) shipped snake_case into TypeScript and only surfaced when
   a component tried to read it.
+- **Cache icons on app identity, not executable path.** Slack's path carries
+  its version; keying on it orphans the icon every update and leaks a stale
+  file per version.
 - **An unmeasurable metric is `None`, never `0`.** `0°C` on an integrated GPU
   reads as a measurement; a dash reads as the gap it is. PDH gives utilisation
   and VRAM for every vendor; temperature, power, clocks and fans are NVML-only.
@@ -77,7 +80,13 @@ rather than an error:
 - `\\.\DISPLAY1` is not stable across reboots or replugs. Monitor identity comes
   from `QueryDisplayConfig` → `DISPLAYCONFIG_TARGET_DEVICE_NAME.monitorDevicePath`.
 - MSIX apps (WhatsApp) have no executable path. They launch only via
-  `shell:AppsFolder\<AUMID>`.
+  `shell:AppsFolder\<AUMID>`, and their icon comes from the package manifest,
+  not a binary's resources. `IShellItemImageFactory` handles both kinds, so
+  packaged and unpackaged apps share one extraction path.
+- Squirrel apps (Slack, Postman) live in versioned `app-x.y.z` directories that
+  change on every update. **Compare those versions numerically** — `app-4.9.0`
+  sorts after `app-4.10.0` as a string, pinning the dock to a build Squirrel
+  will eventually delete.
 - Blocking maximise is reactive, not preemptive — preemptive would require DLL
   injection, which this project avoids for antivirus reasons. A single-frame
   flicker when an app maximises itself from saved state is expected.

@@ -25,6 +25,11 @@ fn main() {
         }
     };
 
+    let icon_cache = dl_config::config_dir()
+        .map(|d| d.join("icons"))
+        .unwrap_or_else(|_| std::path::PathBuf::from("icons"));
+    let apps = dl_apps::AppService::new(icon_cache);
+
     let metrics = dl_metrics::shared(&config.telemetry);
     let engine = dl_engine::Engine::new(shell, config);
     tracing::info!(
@@ -41,7 +46,7 @@ fn main() {
                 Ok(())
             }
         })
-        .manage(commands::AppState::new(engine, metrics))
+        .manage(commands::AppState::new(engine, metrics, apps))
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::list_monitors,
@@ -57,6 +62,10 @@ fn main() {
             commands::is_dirty,
             commands::latest_metrics,
             commands::metrics_history,
+            commands::discover_apps,
+            commands::app_icon,
+            commands::launch_app,
+            commands::refresh_pinned_apps,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the Tauri application");

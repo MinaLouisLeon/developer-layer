@@ -10,20 +10,28 @@
 
 use std::sync::Mutex;
 
-use dl_core::{AppId, Config, MetricsSnapshot, Monitor, SlotId, SlotLayout, WindowAttributes};
+use dl_core::{
+    AppId, Config, MetricsSnapshot, Monitor, PinnedApp, SlotId, SlotLayout, WindowAttributes,
+};
 use dl_engine::{Engine, PassReport};
 use dl_wm::edit::{Axis, Edge};
 
 pub struct AppState {
     engine: Mutex<Engine>,
     metrics: dl_metrics::SharedMetrics,
+    apps: dl_apps::AppService,
 }
 
 impl AppState {
-    pub fn new(engine: Engine, metrics: dl_metrics::SharedMetrics) -> Self {
+    pub fn new(
+        engine: Engine,
+        metrics: dl_metrics::SharedMetrics,
+        apps: dl_apps::AppService,
+    ) -> Self {
         Self {
             engine: Mutex::new(engine),
             metrics,
+            apps,
         }
     }
 }
@@ -183,4 +191,131 @@ pub fn metrics_history(
         .lock()
         .map_err(|e| e.to_string())?
         .recent(count.min(600)))
+}
+
+// ---- dock ----
+
+/// Discover which of the known applications are installed.
+///
+/// Anything not installed is simply absent: a dock entry that cannot start
+/// anything is worse than no entry at all.
+#[tauri::command]
+pub fn discover_apps(state: tauri::State<'_, AppState>) -> Result<Vec<PinnedApp>, String> {
+    Ok(state.apps.discover())
+}
+
+/// An application's icon as a PNG data URL, extracted and cached on first ask.
+///
+/// A data URL rather than a file path: the webview cannot read arbitrary disk
+/// locations under the app's CSP, and routing icons through an asset protocol
+/// would widen that for no benefit at this size.
+#[tauri::command]
+pub fn app_icon(state: tauri::State<'_, AppState>, app: String) -> Result<Option<String>, String> {
+    let id = AppId::new(app);
+
+    let pinned = state
+        .engine
+        .lock()
+        .map_err(|e| e.to_string())?
+        .config()
+        .pinned_apps
+        .iter()
+        .find(|a| a.id == id)
+        .cloned();
+
+    let Some(pinned) = pinned else {
+        return Ok(None);
+    };
+
+    let png = state
+        .apps
+        .icon(&pinned.id, &pinned.app_ref)
+        .map_err(|e| e.to_string())?;
+
+    Ok(png.map(|bytes| format!("data:image/png;base64,{}", base64(&bytes))))
+}
+
+/// Start a pinned application.
+#[tauri::command]
+pub fn launch_app(state: tauri::State<'_, AppState>, app: String) -> Result<(), String> {
+    let id = AppId::new(app);
+
+    let pinned = state
+        .engine
+        .lock()
+        .map_err(|e| e.to_string())?
+        .config()
+        .pinned_apps
+        .iter()
+        .find(|a| a.id == id)
+        .cloned()
+        .ok_or_else(|| format!("`{id}` is not pinned"))?;
+
+    state.apps.launch(&pinned.app_ref)
+}
+
+/// Replace the pinned application list with what discovery found, and persist.
+#[tauri::command]
+pub fn refresh_pinned_apps(state: tauri::State<'_, AppState>) -> Result<Vec<PinnedApp>, String> {
+    let discovered = state.apps.discover();
+
+    let mut engine = state.engine.lock().map_err(|e| e.to_string())?;
+    let config = engine.set_pinned_apps(discovered.clone());
+    dl_config::save(config).map_err(|e| e.to_string())?;
+
+    Ok(discovered)
+}
+
+/// Minimal base64, so an icon can cross to the webview as a data URL.
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            chunk.get(1).copied().unwrap_or(0),
+            chunk.get(2).copied().unwrap_or(0),
+        ];
+        let n = u32::from(b[0]) << 16 | u32::from(b[1]) << 8 | u32::from(b[2]);
+
+        out.push(ALPHABET[(n >> 18 & 63) as usize] as char);
+        out.push(ALPHABET[(n >> 12 & 63) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            ALPHABET[(n >> 6 & 63) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            ALPHABET[(n & 63) as usize] as char
+        } else {
+            '='
+        });
+    }
+
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::base64;
+
+    #[test]
+    fn base64_matches_the_standard_encoding() {
+        assert_eq!(base64(b""), "");
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foo"), "Zm9v");
+        assert_eq!(base64(b"foob"), "Zm9vYg==");
+        assert_eq!(base64(b"fooba"), "Zm9vYmE=");
+        assert_eq!(base64(b"foobar"), "Zm9vYmFy");
+    }
+
+    #[test]
+    fn base64_handles_bytes_above_ascii() {
+        // PNG data is binary; a signed-byte bug would corrupt every icon.
+        assert_eq!(base64(&[0xFF, 0xFE, 0xFD]), "//79");
+        assert_eq!(base64(&[0x89, 0x50, 0x4E, 0x47]), "iVBORw==");
+    }
 }
