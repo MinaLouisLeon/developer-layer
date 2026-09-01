@@ -74,15 +74,11 @@ body {
   font-size: var(--atlas-text-sm);
 }
 
-.shell__pass {
-  display: flex;
-  flex-direction: column;
-  gap: var(--atlas-space-4);
-  margin-top: var(--atlas-space-8);
-}
+.shell__actions { display: flex; gap: var(--atlas-space-2); }
 
-.shell__pass button {
-  align-self: flex-start;
+.shell__actions button,
+.editor__save,
+.controls button {
   background: var(--atlas-raised);
   color: var(--atlas-accent);
   border: 1px solid var(--atlas-accent-dim);
@@ -90,13 +86,132 @@ body {
   padding: var(--atlas-space-2) var(--atlas-space-4);
   font-family: var(--atlas-font-mono);
   font-size: var(--atlas-text-xs);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   transition: border-color var(--atlas-duration) var(--atlas-ease);
 }
 
-.shell__pass button:hover,
-.shell__pass button:focus-visible {
+.shell__actions button:hover,
+.editor__save:hover,
+.controls button:hover,
+.shell__actions button:focus-visible,
+.editor__save:focus-visible,
+.controls button:focus-visible {
   border-color: var(--atlas-accent);
+}
+
+.editor { display: flex; flex-direction: column; gap: var(--atlas-space-4); }
+
+.editor__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--atlas-space-4);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--atlas-hairline);
+  padding-bottom: var(--atlas-space-3);
+}
+
+.editor__title {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--atlas-accent);
+}
+
+.editor__hint { color: var(--atlas-text-muted); font-size: var(--atlas-text-sm); flex: 1; }
+.editor__save:disabled { opacity: 0.5; cursor: default; }
+
+.editor__displays {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--atlas-space-4);
+}
+
+.display { margin: 0; display: flex; flex-direction: column; gap: var(--atlas-space-2); }
+
+.display__label {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  color: var(--atlas-text-muted);
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.display__canvas {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--atlas-void);
+  border: 1px solid var(--atlas-hairline-strong);
+  overflow: hidden;
+}
+
+.tile {
+  position: absolute;
+  background: var(--atlas-surface);
+  border: 1px solid var(--atlas-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--atlas-duration-fast) var(--atlas-ease);
+}
+
+.tile--selected { border-color: var(--atlas-accent); background: var(--atlas-raised); }
+
+.tile__name {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  color: var(--atlas-text-muted);
+  padding: 0 var(--atlas-space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile--selected .tile__name { color: var(--atlas-accent); }
+
+/* Generous hit targets: the visual border is 1px, which is unusable to grab. */
+.handle { position: absolute; background: transparent; }
+.handle:hover { background: var(--atlas-accent-glow); }
+.handle--v { top: 0; bottom: 0; width: 9px; margin-right: -4px; cursor: col-resize; }
+.handle--h { left: 0; right: 0; height: 9px; margin-bottom: -4px; cursor: row-resize; }
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--atlas-space-3);
+  flex-wrap: wrap;
+  padding: var(--atlas-space-3);
+  background: var(--atlas-surface);
+  border: 1px solid var(--atlas-hairline);
+}
+
+.controls__label {
+  font-family: var(--atlas-font-mono);
+  font-size: var(--atlas-text-xs);
+  color: var(--atlas-accent);
+  letter-spacing: 0.08em;
+}
+
+.controls__assign {
+  display: flex;
+  align-items: center;
+  gap: var(--atlas-space-2);
+  font-size: var(--atlas-text-sm);
+  color: var(--atlas-text-muted);
+}
+
+.controls__assign select {
+  background: var(--atlas-raised);
+  color: var(--atlas-text);
+  border: 1px solid var(--atlas-hairline-strong);
+  border-radius: var(--atlas-radius);
+  padding: var(--atlas-space-1) var(--atlas-space-2);
+  font-family: var(--atlas-font-ui);
+  font-size: var(--atlas-text-sm);
 }

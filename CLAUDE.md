@@ -43,7 +43,18 @@ raise it explicitly rather than quietly building something else.
   on both separators.
 - **`MinimizeReason` must be set correctly at every minimise site.** The
   reconnect rule depends on distinguishing a user minimise from a
-  disconnect orphan; guessing after the fact is impossible.
+  disconnect orphan; guessing after the fact is impossible. `Engine` carries
+  this map across passes because the platform cannot report it.
+- **Every slot edit preserves coverage.** The slots on a display always tile it
+  exactly; a gap is dead screen space no window can occupy. `dl-wm::edit` has a
+  test that runs a sequence of edits and asserts coverage never drifts — that
+  test caught two real bugs and should stay.
+- **A slot may only be absorbed by a neighbour sharing its whole edge.** Merely
+  overlapping is not enough: the union has to be a rectangle, or the absorber
+  grows into a notch and overlaps whatever sits there.
+- **Every exported struct sets `#[serde(rename_all = "camelCase")]`.** One that
+  did not (`Monitor`) shipped snake_case into TypeScript and only surfaced when
+  a component tried to read it.
 
 ## Known Win32 traps
 
@@ -78,3 +89,7 @@ rather than an error:
 - Every `unsafe` block carries a `SAFETY:` comment stating why it holds.
 - A stage of the engine pipeline that can be pure logic is pure logic. The
   platform layer reports facts and performs actions; it never decides policy.
+  Timing policy included — `dl-wm::coalesce` takes an injected clock so the
+  debounce rules are tested rather than eyeballed on a running desktop.
+- Config is never silently reset. A corrupt file is a startup error, because it
+  holds every layout the user arranged.

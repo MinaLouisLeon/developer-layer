@@ -33,6 +33,7 @@ impl std::fmt::Display for MonitorId {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../../apps/ui/shared/src/generated/")]
 pub struct Monitor {
     pub id: MonitorId,

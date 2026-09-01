@@ -10,6 +10,7 @@ description = "Windows implementation of the Developer Layer platform trait."
 [dependencies]
 dl-core = { workspace = true }
 dl-platform = { workspace = true }
+dl-wm = { workspace = true }
 
 # Gated by target, not by feature: on Linux this crate compiles to an empty
 # library so `cargo build --workspace` works in CI without cross-compiling.

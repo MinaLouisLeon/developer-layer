@@ -16,14 +16,20 @@
 //! 4. [`reconcile`] diffs desired against observed and emits the minimum set of
 //!    platform calls, with [`frame`] correcting for the invisible resize border.
 
+pub mod coalesce;
 pub mod display_change;
+pub mod edit;
 pub mod frame;
+pub mod layouts;
 pub mod reconcile;
 pub mod resolve;
 pub mod rules;
 
+pub use coalesce::{Coalescer, WindowEvent};
 pub use display_change::{DisplayChange, DisplayChangeOutcome, WindowAction};
+pub use edit::{Axis, Edge, EditError};
 pub use frame::{approximately_equal, compensate, visible_frame_of};
+pub use layouts::{select, LayoutSource, SelectedLayout};
 pub use reconcile::{reconcile, Operation, DEFAULT_TOLERANCE};
 pub use resolve::{Placement, Resolver};
 pub use rules::{Classification, IgnoreReason, Rules};

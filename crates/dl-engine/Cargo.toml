@@ -11,5 +11,6 @@ description = "Slot engine orchestration: observe, classify, resolve, reconcile,
 dl-core = { workspace = true }
 dl-platform = { workspace = true }
 dl-wm = { workspace = true }
+thiserror = { workspace = true }
 serde = { workspace = true }
 ts-rs = { workspace = true }

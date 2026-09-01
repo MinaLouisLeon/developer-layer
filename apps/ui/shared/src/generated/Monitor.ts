@@ -14,9 +14,9 @@ bounds: Rect,
 /**
  * Bounds minus anything reserved by an AppBar — this is what slots project onto.
  */
-work_area: Rect, 
+workArea: Rect, 
 /**
  * Per-monitor DPI scale. Mixed-DPI setups are why each display gets its
  * own window rather than one spanning the virtual desktop.
  */
-scale_factor: number, is_primary: boolean, };
+scaleFactor: number, isPrimary: boolean, };

@@ -10,11 +10,15 @@
 #[cfg(windows)]
 mod error;
 #[cfg(windows)]
+mod hooks;
+#[cfg(windows)]
 mod monitors;
 #[cfg(windows)]
 mod shell;
 #[cfg(windows)]
 mod windows_enum;
 
+#[cfg(windows)]
+pub use hooks::{run_event_loop, stop_event_loop, HookEvent};
 #[cfg(windows)]
 pub use shell::WindowsShell;
