@@ -1,0 +1,12 @@
+[package]
+name = "dl-platform-mac"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "macOS implementation of the Developer Layer platform trait (phase 10)."
+
+[dependencies]
+dl-core = { workspace = true }
+dl-platform = { workspace = true }

@@ -1,0 +1,31 @@
+[package]
+name = "dl-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Developer Layer desktop shell. Command dispatch and window lifecycle only."
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dl-core = { workspace = true }
+dl-platform = { workspace = true }
+dl-wm = { workspace = true }
+dl-metrics = { workspace = true }
+dl-apps = { workspace = true }
+dl-atlas = { workspace = true }
+
+tauri = { version = "2", features = [] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[target.'cfg(windows)'.dependencies]
+dl-platform-win = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+dl-platform-mac = { workspace = true }

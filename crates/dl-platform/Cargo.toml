@@ -1,0 +1,12 @@
+[package]
+name = "dl-platform"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Platform abstraction for Developer Layer. Contains no OS calls."
+
+[dependencies]
+dl-core = { workspace = true }
+thiserror = { workspace = true }

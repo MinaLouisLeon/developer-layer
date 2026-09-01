@@ -1,0 +1,59 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/dl-core",
+    "crates/dl-platform",
+    "crates/dl-platform-win",
+    "crates/dl-platform-mac",
+    "crates/dl-wm",
+    "crates/dl-metrics",
+    "crates/dl-apps",
+    "crates/dl-atlas",
+    "apps/desktop",
+]
+
+# `apps/desktop` pulls in Tauri, which needs webkit2gtk on Linux. Excluding it
+# from the default set means a bare `cargo test` runs the pure crates anywhere,
+# while CI on windows-latest uses `--workspace` to build the real thing.
+default-members = [
+    "crates/dl-core",
+    "crates/dl-platform",
+    "crates/dl-platform-win",
+    "crates/dl-platform-mac",
+    "crates/dl-wm",
+    "crates/dl-metrics",
+    "crates/dl-apps",
+    "crates/dl-atlas",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+repository = "https://github.com/MinaLouisLeon/developer-layer"
+
+[workspace.dependencies]
+dl-core = { path = "crates/dl-core" }
+dl-platform = { path = "crates/dl-platform" }
+dl-platform-win = { path = "crates/dl-platform-win" }
+dl-platform-mac = { path = "crates/dl-platform-mac" }
+dl-wm = { path = "crates/dl-wm" }
+dl-metrics = { path = "crates/dl-metrics" }
+dl-apps = { path = "crates/dl-apps" }
+dl-atlas = { path = "crates/dl-atlas" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+ts-rs = { version = "10", features = ["serde-compat", "no-serde-warnings"] }
+
+# NOTE: panic = "abort" is deliberately NOT set. The shell hides the native
+# taskbar, so the panic hook must be able to run and restore it before exit.
+# Reliability beats the binary-size win here.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

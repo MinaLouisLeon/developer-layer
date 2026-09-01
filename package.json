@@ -1,0 +1,21 @@
+{
+  "name": "developer-layer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows 11 shell replacement with a no-overlap slot grid, telemetry and the Atlas assistant.",
+  "license": "MIT",
+  "workspaces": ["apps/ui/*"],
+  "engines": { "node": ">=20.11" },
+  "scripts": {
+    "dev": "npm run dev -w @developer-layer/shell",
+    "build": "npm run build -w @developer-layer/shell",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "gen:types": "cargo test -p dl-core export_bindings",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
+    "typescript": "^5.7.2"
+  }
+}

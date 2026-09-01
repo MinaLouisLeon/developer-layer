@@ -1,0 +1,13 @@
+[package]
+name = "dl-metrics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Telemetry sampling for Developer Layer."
+
+[dependencies]
+dl-core = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

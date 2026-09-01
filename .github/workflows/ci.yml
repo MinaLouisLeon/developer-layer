@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # The pure crates carry the slot engine and every domain rule, so they are
+  # worth checking on the fast runner before spending a Windows one.
+  core:
+    name: Core crates and UI (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test
+
+      - name: Generated TypeScript is up to date
+        run: |
+          cargo test -p dl-core export_bindings
+          git diff --exit-code -- apps/ui/shared/src/generated \
+            || (echo "::error::Generated bindings are stale. Run 'npm run gen:types' and commit." && exit 1)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+
+  # Only Windows can compile the platform crate and Tauri, so this job is the
+  # first real check on anything touching Win32.
+  windows:
+    name: Full workspace (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # tauri-build validates frontendDist, so the frontend must exist first.
+      - run: npm run build
+
+      - name: Clippy (including dl-platform-win)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace

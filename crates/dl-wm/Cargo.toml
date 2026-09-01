@@ -1,0 +1,16 @@
+[package]
+name = "dl-wm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure-logic slot engine for Developer Layer. Contains no OS calls."
+
+[dependencies]
+dl-core = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

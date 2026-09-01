@@ -1,0 +1,66 @@
+/*
+ * Atlas design tokens.
+ *
+ * The shell commits to a single dark identity rather than tracking a system
+ * theme — it *is* the desktop, so there is no host theme to follow.
+ *
+ * Colour discipline: one accent (Atlas cyan) carries interaction and emphasis.
+ * Semantic colours are reserved for state and never used decoratively, so a
+ * warning on a telemetry gauge always means something.
+ */
+:root {
+  /* Grounds — cool, slightly blue-biased rather than neutral grey. */
+  --atlas-void: #05090b;
+  --atlas-surface: #0c1317;
+  --atlas-raised: #131e24;
+  --atlas-hairline: #1d2c34;
+  --atlas-hairline-strong: #2b3f4a;
+
+  /* Accent */
+  --atlas-accent: #3fbfd4;
+  --atlas-accent-dim: #1d6c78;
+  --atlas-accent-glow: #3fbfd433;
+
+  /* Text */
+  --atlas-text: #dce6ea;
+  --atlas-text-muted: #7a8b94;
+  --atlas-text-faint: #4c5b64;
+
+  /* Semantic — state only, never decoration. */
+  --atlas-ok: #5cb584;
+  --atlas-warn: #e3a13f;
+  --atlas-crit: #e06a6a;
+
+  /* Type */
+  --atlas-font-ui: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --atlas-font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", monospace;
+  --atlas-text-xs: 0.6875rem;
+  --atlas-text-sm: 0.8125rem;
+  --atlas-text-base: 0.9375rem;
+  --atlas-text-lg: 1.125rem;
+  --atlas-text-xl: 1.5rem;
+
+  /* Space — 4px base. */
+  --atlas-space-1: 4px;
+  --atlas-space-2: 8px;
+  --atlas-space-3: 12px;
+  --atlas-space-4: 16px;
+  --atlas-space-6: 24px;
+  --atlas-space-8: 32px;
+
+  --atlas-radius: 2px;
+  --atlas-radius-lg: 4px;
+
+  /* Motion. Capped deliberately: overlays are always visible across every
+     display, so uncapped animation burns GPU continuously. */
+  --atlas-duration-fast: 120ms;
+  --atlas-duration: 200ms;
+  --atlas-ease: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --atlas-duration-fast: 0ms;
+    --atlas-duration: 0ms;
+  }
+}

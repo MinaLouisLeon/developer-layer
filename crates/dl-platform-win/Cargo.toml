@@ -1,0 +1,29 @@
+[package]
+name = "dl-platform-win"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Windows implementation of the Developer Layer platform trait."
+
+[dependencies]
+dl-core = { workspace = true }
+dl-platform = { workspace = true }
+
+# Gated by target, not by feature: on Linux this crate compiles to an empty
+# library so `cargo build --workspace` works in CI without cross-compiling.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Devices_Display",
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Threading",
+    "Win32_UI_Accessibility",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+windows-core = "0.62"
+winreg = "0.55"

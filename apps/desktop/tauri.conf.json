@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Developer Layer",
+  "version": "0.1.0",
+  "identifier": "com.minalouisleon.developer-layer",
+  "build": {
+    "beforeDevCommand": "npm run dev -w @developer-layer/shell",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build -w @developer-layer/shell",
+    "frontendDist": "../ui/shell/dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "shell",
+        "title": "Developer Layer",
+        "width": 1100,
+        "height": 720,
+        "resizable": true,
+        "decorations": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": ["icons/icon.ico"],
+    "copyright": "MIT",
+    "shortDescription": "Windows shell replacement with a no-overlap slot grid.",
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" }
+    }
+  }
+}
