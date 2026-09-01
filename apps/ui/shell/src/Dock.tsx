@@ -1,78 +1,89 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { PinnedApp } from "@developer-layer/shared";
+import type { DockEntry } from "@developer-layer/shared";
 
-import { appIcon, discoverApps, launchApp, refreshPinnedApps } from "./ipc";
+import {
+  appIcon,
+  clickDockEntry,
+  dockEntries,
+  refreshPinnedApps,
+  windowThumbnail,
+} from "./ipc";
 
 interface Props {
-  apps: PinnedApp[];
-  onApps: (apps: PinnedApp[]) => void;
   onError: (message: string) => void;
 }
 
 /**
- * The dock.
+ * The dock — a taskbar replacement.
  *
- * Phase 04 launches; running state, focus and thumbnails are phase 05.
- *
- * Icons are fetched once per app and held here. They are extracted through a
- * COM round trip on the Rust side and cached to disk, so refetching on every
- * render would be wasteful even though the disk cache makes it cheap.
+ * What a click means is decided in Rust, not here: the rules depend on how many
+ * windows an entry has, which are minimised and which holds the foreground, and
+ * they are tested there rather than discovered by clicking around. This
+ * component reports the click and re-reads state.
  */
-export function Dock({ apps, onApps, onError }: Props) {
+export function Dock({ onError }: Props) {
+  const [entries, setEntries] = useState<DockEntry[]>([]);
   const [icons, setIcons] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  const refresh = useCallback(() => {
+    void dockEntries()
+      .then(setEntries)
+      .catch((e: unknown) => onError(String(e)));
+  }, [onError]);
+
+  useEffect(() => {
+    refresh();
+    // Polled rather than pushed for now: the WinEvent hook thread already
+    // coalesces window events, and wiring its output through to the frontend
+    // is the last piece. One second is imperceptible for running state.
+    const timer = window.setInterval(refresh, 1000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
 
   useEffect(() => {
     let cancelled = false;
 
-    for (const app of apps) {
-      if (icons[app.id] !== undefined) continue;
+    for (const entry of entries) {
+      const id = entry.app;
+      if (!id || icons[id] !== undefined) continue;
 
-      void appIcon(app.id)
+      void appIcon(id)
         .then((url) => {
           if (cancelled || !url) return;
-          setIcons((current) => ({ ...current, [app.id]: url }));
+          setIcons((current) => ({ ...current, [id]: url }));
         })
-        // A missing icon is not worth an error banner; the initial renders as
-        // a fallback and the app still launches.
+        // A missing icon renders as an initial and the entry still works.
         .catch(() => undefined);
     }
 
     return () => {
       cancelled = true;
     };
-  }, [apps, icons]);
+  }, [entries, icons]);
 
-  const launch = useCallback(
-    (app: PinnedApp) => {
-      setBusy(app.id);
-      launchApp(app.id)
-        .catch((e: unknown) => onError(String(e)))
-        // Clearing on a timer rather than on window-appears: knowing when an
-        // app's window shows up is phase 05's job, and the indicator is only
-        // there to confirm the click registered.
-        .finally(() => window.setTimeout(() => setBusy(null), 600));
+  const click = useCallback(
+    (entry: DockEntry) => {
+      void clickDockEntry(entry.app)
+        .then(refresh)
+        .catch((e: unknown) => onError(String(e)));
     },
-    [onError],
+    [refresh, onError],
   );
 
-  const rediscover = useCallback(() => {
-    void refreshPinnedApps()
-      .then((found) => {
-        onApps(found);
-        // Discovery may have found an app at a new location, so drop the icon
-        // map and let it refill.
-        setIcons({});
-      })
-      .catch((e: unknown) => onError(String(e)));
-  }, [onApps, onError]);
-
-  if (apps.length === 0) {
+  if (entries.length === 0) {
     return (
       <section className="dock dock--empty">
         <span className="dock__hint">No applications pinned yet.</span>
-        <button type="button" onClick={rediscover}>
+        <button
+          type="button"
+          onClick={() => {
+            void refreshPinnedApps()
+              .then(refresh)
+              .catch((e: unknown) => onError(String(e)));
+          }}
+        >
           Find installed apps
         </button>
       </section>
@@ -82,43 +93,102 @@ export function Dock({ apps, onApps, onError }: Props) {
   return (
     <section className="dock">
       <ul className="dock__items">
-        {apps.map((app) => (
-          <li key={app.id}>
+        {entries.map((entry) => (
+          <li
+            key={entry.app ?? entry.displayName}
+            onMouseEnter={() => setHovered(entry.app ?? entry.displayName)}
+            onMouseLeave={() => setHovered(null)}
+          >
             <button
               type="button"
-              className={`dock__app${busy === app.id ? " dock__app--busy" : ""}`}
-              title={app.displayName}
-              onClick={() => launch(app)}
+              className={[
+                "dock__app",
+                entry.active ? "dock__app--active" : "",
+                entry.windows.length > 0 ? "dock__app--running" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              title={entry.displayName}
+              onClick={() => click(entry)}
             >
-              {icons[app.id] ? (
-                <img className="dock__icon" src={icons[app.id]} alt="" />
+              {entry.app && icons[entry.app] ? (
+                <img className="dock__icon" src={icons[entry.app]} alt="" />
               ) : (
                 <span className="dock__initial" aria-hidden="true">
-                  {app.displayName.charAt(0)}
+                  {entry.displayName.charAt(0)}
                 </span>
               )}
-              <span className="dock__name">{app.displayName}</span>
+
+              <span className="dock__name">{entry.displayName}</span>
+
+              {/* One pip per window, up to four: past that the count is what
+                  matters, not the exact number. */}
+              {entry.windows.length > 0 ? (
+                <span className="dock__pips" aria-hidden="true">
+                  {Array.from({ length: Math.min(entry.windows.length, 4) }).map(
+                    (_, i) => (
+                      <span key={i} className="dock__pip" />
+                    ),
+                  )}
+                </span>
+              ) : null}
             </button>
+
+            {hovered === (entry.app ?? entry.displayName) &&
+            entry.windows.length > 0 ? (
+              <Previews entry={entry} />
+            ) : null}
           </li>
         ))}
       </ul>
-
-      <button type="button" className="dock__refresh" onClick={rediscover}>
-        Rescan
-      </button>
     </section>
   );
 }
 
-/** Discover installed apps without pinning them, for a first-run preview. */
-export function useDiscovery(onError: (message: string) => void) {
-  const [found, setFound] = useState<PinnedApp[] | null>(null);
+/**
+ * Hover previews.
+ *
+ * Captured on hover rather than continuously — each is a PrintWindow round trip
+ * on the Rust side, so capturing every window all the time would cost far more
+ * than the previews are worth.
+ */
+function Previews({ entry }: { entry: DockEntry }) {
+  const [shots, setShots] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    void discoverApps()
-      .then(setFound)
-      .catch((e: unknown) => onError(String(e)));
-  }, [onError]);
+    let cancelled = false;
 
-  return found;
+    for (const window_ of entry.windows) {
+      // A minimised window has no visible area to capture.
+      if (window_.minimized) continue;
+
+      void windowThumbnail(Number(window_.id))
+        .then((url) => {
+          if (cancelled || !url) return;
+          setShots((current) => ({ ...current, [String(window_.id)]: url }));
+        })
+        .catch(() => undefined);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entry]);
+
+  return (
+    <div className="previews">
+      {entry.windows.map((w) => (
+        <figure key={String(w.id)} className="preview">
+          {shots[String(w.id)] ? (
+            <img className="preview__shot" src={shots[String(w.id)]} alt="" />
+          ) : (
+            <span className="preview__placeholder">
+              {w.minimized ? "Minimised" : "…"}
+            </span>
+          )}
+          <figcaption className="preview__title">{w.title}</figcaption>
+        </figure>
+      ))}
+    </div>
+  );
 }

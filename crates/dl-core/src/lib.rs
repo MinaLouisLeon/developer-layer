@@ -10,6 +10,7 @@
 pub mod app;
 pub mod attributes;
 pub mod config;
+pub mod dock;
 pub mod geometry;
 pub mod metrics;
 pub mod monitor;
@@ -19,6 +20,7 @@ pub mod window;
 pub use app::{AppId, AppRef, PinnedApp};
 pub use attributes::{FramePadding, WindowAttributes};
 pub use config::{AtlasConfig, Config, TelemetryConfig};
+pub use dock::{DockAction, DockEntry, DockWindow};
 pub use geometry::{NormalizedRect, Rect};
 pub use metrics::{
     CpuMetrics, DiskMetrics, GpuKind, GpuMetrics, GpuVendor, MemoryMetrics, MetricsSnapshot,

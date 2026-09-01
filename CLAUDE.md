@@ -93,7 +93,17 @@ rather than an error:
 - Hiding `Shell_TrayWnd` requires a guarantee of restoration: panic hook,
   `SetUnhandledExceptionFilter`, a restore hotkey, and a guardian process. Ship
   these with the hiding, not after. `panic = "abort"` is deliberately not set in
-  the release profile for this reason.
+  the release profile for this reason. **Only the guardian survives
+  `TerminateProcess`** — it is a separate process for exactly that reason, and
+  it must be running *before* anything hides the taskbar. Also hide
+  `Shell_SecondaryTrayWnd`, or every display but the first keeps its taskbar.
+- Taskbar state is marked hidden *before* the `ShowWindow` call, not after. If
+  the primary hides and the process dies before the secondary, a flag set
+  afterwards would claim nothing is hidden and no route would clean up.
+- `PrintWindow` needs `PW_RENDERFULLCONTENT`, or every GPU-composited
+  application — Chrome, VS Code, most of the dock — captures as a blank
+  rectangle. GDI also leaves alpha at zero on opaque windows, which renders the
+  whole thumbnail invisible unless it is forced to 255.
 
 ## Conventions
 
@@ -111,6 +121,10 @@ rather than an error:
   holds every layout the user arranged.
 - Telemetry is pushed, never polled: the backend owns the interval, and history
   lives in the Rust ring buffer so a remounted panel loses nothing.
+- A dock click's meaning is decided in Rust, not the UI: it depends on window
+  count, which are minimised, and which holds the foreground. Clicking the
+  focused window minimises it — re-focusing something already focused looks
+  like a dead click.
 - Gauges draw to Canvas. CSS filter glow on an always-visible widget
   re-rasterises every frame on every display — the cost a system monitor must
   not impose on the system it measures.

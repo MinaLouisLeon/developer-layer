@@ -5,6 +5,15 @@ mod commands;
 mod platform;
 
 fn main() {
+    // The guardian branch runs before anything else: it is the same binary
+    // re-executed with a flag, and it must not build a whole shell just to
+    // wait on a process handle.
+    #[cfg(windows)]
+    if let Some(parent) = guardian_parent() {
+        dl_platform_win::run_guardian(parent);
+        return;
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -66,6 +75,11 @@ fn main() {
             commands::app_icon,
             commands::launch_app,
             commands::refresh_pinned_apps,
+            commands::dock_entries,
+            commands::set_foreground,
+            commands::click_dock_entry,
+            commands::window_thumbnail,
+            commands::set_taskbar_replacement,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the Tauri application");
@@ -99,4 +113,14 @@ fn spawn_sampler(app: tauri::AppHandle, metrics: dl_metrics::SharedMetrics) {
             }
         })
         .expect("failed to spawn the telemetry thread");
+}
+
+/// The parent PID when this process was launched as a taskbar guardian.
+#[cfg(windows)]
+fn guardian_parent() -> Option<u32> {
+    let mut args = std::env::args().skip(1);
+    if args.next().as_deref() != Some(dl_platform_win::GUARDIAN_FLAG) {
+        return None;
+    }
+    args.next()?.parse().ok()
 }

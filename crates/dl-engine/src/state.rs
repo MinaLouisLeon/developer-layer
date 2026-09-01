@@ -9,11 +9,13 @@
 use std::collections::HashMap;
 
 use dl_core::{
-    Config, DisplaySet, MinimizeReason, Monitor, MonitorId, SlotId, SlotLayout, WindowId,
+    Config, DisplaySet, DockAction, DockEntry, DockWindow, MinimizeReason, Monitor, MonitorId,
+    SlotId, SlotLayout, WindowId,
 };
 use dl_platform::ShellIntegration;
 use dl_wm::coalesce::{Coalescer, WindowEvent};
 use dl_wm::display_change::{self, DisplayChange, WindowAction};
+use dl_wm::dock;
 use dl_wm::edit::{self, Axis, Edge};
 use dl_wm::layouts::{self, LayoutSource};
 
@@ -39,9 +41,18 @@ pub struct Engine {
     /// Why each currently minimised window is minimised. Absent means visible.
     minimize_reasons: HashMap<WindowId, MinimizeReason>,
     coalescer: Coalescer,
+    /// The window holding the foreground, tracked from WinEvent hooks. The
+    /// dock's click semantics depend on it — clicking the focused window
+    /// minimises rather than re-focuses.
+    foreground: Option<WindowId>,
     /// Set when the layout has unsaved edits, so the caller knows to persist.
     dirty: bool,
+    /// The guardian child, alive only while the native taskbar is hidden.
+    guardian: Option<std::process::Child>,
 }
+
+/// Height reserved for the dock, in physical pixels.
+const DOCK_THICKNESS: i32 = 64;
 
 impl Engine {
     pub fn new(shell: Box<dyn ShellIntegration>, config: Config) -> Self {
@@ -57,7 +68,9 @@ impl Engine {
             config,
             minimize_reasons: HashMap::new(),
             coalescer: Coalescer::default(),
+            foreground: None,
             dirty: false,
+            guardian: None,
         }
     }
 
@@ -226,6 +239,127 @@ impl Engine {
                 },
             })
             .collect())
+    }
+
+    /// Current dock entries: pinned apps plus anything else running.
+    pub fn dock(&self) -> Result<Vec<DockEntry>> {
+        let observed = self.windows()?;
+        let rules = dl_wm::Rules::from_pinned(&self.config.pinned_apps);
+
+        let mut windows = Vec::new();
+        for w in &observed {
+            // The dock lists what the grid manages, so a cloaked ghost or a
+            // tool window is excluded here for the same reason it is there.
+            let app = crate::pass::resolve_app(w, &self.config);
+            if rules.classify(w, app.as_ref()).is_ignored() {
+                continue;
+            }
+
+            windows.push((
+                app,
+                DockWindow {
+                    id: w.id,
+                    title: w.title.clone(),
+                    minimized: w.is_minimized,
+                },
+            ));
+        }
+
+        Ok(dock::build(
+            &self.config.pinned_apps,
+            &windows,
+            self.foreground,
+        ))
+    }
+
+    /// Record which window holds the foreground, from a WinEvent hook.
+    pub fn set_foreground(&mut self, window: Option<WindowId>) {
+        self.foreground = window;
+    }
+
+    /// Perform the action a dock click implies, returning what was done.
+    pub fn click_dock_entry(&mut self, entry: &DockEntry) -> Result<DockAction> {
+        let action = dock::on_click(entry, self.foreground);
+
+        match &action {
+            DockAction::Focus(w) | DockAction::Cycle(w) => {
+                self.shell
+                    .focus_window(*w)
+                    .map_err(|e| EngineError::Platform(e.to_string()))?;
+            }
+            DockAction::Minimize(w) => {
+                self.shell
+                    .minimize_window(*w)
+                    .map_err(|e| EngineError::Platform(e.to_string()))?;
+                // A dock click is the user minimising it, so it must not be
+                // resurrected by a later display reconnect.
+                self.minimize_reasons.insert(*w, MinimizeReason::User);
+            }
+            DockAction::RestoreAll(windows) => {
+                for w in windows {
+                    let _ = self.shell.restore_window(*w);
+                    self.minimize_reasons.remove(w);
+                }
+            }
+            // Launching is the caller's job: it needs dl-apps, which the engine
+            // deliberately does not depend on.
+            DockAction::Launch(_) | DockAction::Nothing => {}
+        }
+
+        Ok(action)
+    }
+
+    /// Turn native-taskbar replacement on or off.
+    ///
+    /// Order matters on the way in: the guardian must be running *before* the
+    /// taskbar is hidden, or a hard kill in the window between the two leaves
+    /// the user with no shell and nothing watching to put it back.
+    pub fn set_taskbar_replacement(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            self.start_guardian();
+            self.shell
+                .reserve_dock_space(dl_platform::DockEdge::Bottom, DOCK_THICKNESS)
+                .map_err(|e| EngineError::Platform(e.to_string()))?;
+            self.shell
+                .set_native_taskbar_visible(false)
+                .map_err(|e| EngineError::Platform(e.to_string()))?;
+        } else {
+            // Reverse order on the way out: put the shell back first, so a
+            // failure releasing the AppBar still leaves a usable desktop.
+            self.shell
+                .set_native_taskbar_visible(true)
+                .map_err(|e| EngineError::Platform(e.to_string()))?;
+            let _ = self.shell.release_dock_space();
+            self.stop_guardian();
+        }
+
+        self.config.general.replace_native_taskbar = enabled;
+        Ok(())
+    }
+
+    fn start_guardian(&mut self) {
+        // Inverted rather than an early return so the body is the only
+        // platform-specific part; on non-Windows the cfg block vanishes and a
+        // trailing `return` would be left behind.
+        if self.guardian.is_none() {
+            #[cfg(windows)]
+            match dl_platform_win::spawn_guardian() {
+                Ok(child) => self.guardian = Some(child),
+                // Logged rather than fatal, but the caller should treat a
+                // missing guardian as a reason not to hide: without it a hard
+                // kill leaves no taskbar and no way back.
+                Err(e) => tracing::error!("taskbar guardian did not start: {e}"),
+            }
+        }
+    }
+
+    fn stop_guardian(&mut self) {
+        if let Some(mut child) = self.guardian.take() {
+            // The guardian restores the taskbar when its parent exits, and the
+            // parent is still alive here, so killing it directly is correct.
+            let _ = child.kill();
+            let _ = child.wait();
+        }
     }
 
     /// Replace the pinned application list, returning config for persistence.

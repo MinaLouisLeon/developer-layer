@@ -748,9 +748,11 @@ version = "0.1.0"
 dependencies = [
  "dl-core",
  "dl-platform",
+ "dl-platform-win",
  "dl-wm",
  "serde",
  "thiserror 2.0.20",
+ "tracing",
  "ts-rs",
 ]
 
@@ -789,6 +791,7 @@ dependencies = [
  "dl-core",
  "dl-platform",
  "dl-wm",
+ "png 0.17.16",
  "windows 0.62.2",
  "windows-core 0.62.2",
  "winreg",

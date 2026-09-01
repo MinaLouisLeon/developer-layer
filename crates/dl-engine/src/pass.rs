@@ -96,7 +96,7 @@ fn apply(shell: &dyn ShellIntegration, op: &Operation) -> Result<(), String> {
 /// AUMID is checked first: packaged apps such as WhatsApp report an executable
 /// path belonging to the UWP host rather than to themselves, so matching on
 /// path alone would collapse every Store app into one.
-fn resolve_app(window: &WindowAttributes, config: &Config) -> Option<AppId> {
+pub(crate) fn resolve_app(window: &WindowAttributes, config: &Config) -> Option<AppId> {
     use dl_core::AppRef;
 
     if let Some(aumid) = &window.aumid {

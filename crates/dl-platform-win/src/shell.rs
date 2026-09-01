@@ -10,16 +10,48 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 
 use crate::error::last_error;
-use crate::{monitors, windows_enum};
+use crate::{monitors, taskbar, windows_enum};
+use dl_wm::taskbar_guard::{RestoreReason, TaskbarState};
+use std::sync::Mutex;
 
 #[derive(Debug, Default)]
 pub struct WindowsShell {
-    _private: (),
+    /// Shared with the panic hook and exception filter so every restore route
+    /// agrees on whether the taskbar is currently hidden.
+    taskbar: TaskbarState,
+    /// The dock window that owns the AppBar reservation. Set once the dock
+    /// exists; until then there is nothing to reserve space for.
+    dock_hwnd: Mutex<Option<isize>>,
 }
 
 impl WindowsShell {
     pub fn new() -> Self {
-        Self::default()
+        let shell = Self::default();
+        // Installed before anything can hide the taskbar, so a crash during
+        // startup still restores it.
+        taskbar::install_crash_handlers(shell.taskbar.clone());
+        shell
+    }
+
+    /// Shared taskbar state, for the guardian process and the restore hotkey.
+    pub fn taskbar_state(&self) -> TaskbarState {
+        self.taskbar.clone()
+    }
+
+    /// Register which window owns the AppBar reservation.
+    pub fn set_dock_window(&self, hwnd: isize) {
+        if let Ok(mut slot) = self.dock_hwnd.lock() {
+            *slot = Some(hwnd);
+        }
+    }
+
+    fn dock_window(&self) -> Result<HWND> {
+        self.dock_hwnd
+            .lock()
+            .ok()
+            .and_then(|slot| *slot)
+            .map(|raw| HWND(raw as *mut core::ffi::c_void))
+            .ok_or_else(|| PlatformError::Shell("no dock window registered".into()))
     }
 }
 
@@ -117,24 +149,29 @@ impl ShellIntegration for WindowsShell {
         Ok(())
     }
 
-    fn reserve_dock_space(&self, _edge: DockEdge, _thickness: i32) -> Result<()> {
-        Err(PlatformError::Unsupported(
-            "reserve_dock_space: implemented in phase 05",
-        ))
+    fn reserve_dock_space(&self, edge: DockEdge, thickness: i32) -> Result<()> {
+        let hwnd = self.dock_window()?;
+
+        // Reserve on the primary display: an AppBar edge belongs to one
+        // monitor, and the dock lives on one.
+        let monitor = self
+            .monitors()?
+            .into_iter()
+            .find(|m| m.is_primary)
+            .ok_or_else(|| PlatformError::DisplayEnumeration("no primary display".into()))?;
+
+        taskbar::reserve_dock_space(hwnd, edge, thickness, monitor.bounds)
     }
 
     fn release_dock_space(&self) -> Result<()> {
-        Err(PlatformError::Unsupported(
-            "release_dock_space: implemented in phase 05",
-        ))
+        taskbar::release_dock_space(self.dock_window()?)
     }
 
-    fn set_native_taskbar_visible(&self, _visible: bool) -> Result<()> {
-        // Deliberately unimplemented until the guardian process exists: hiding
-        // the taskbar without a guaranteed restore path can leave the user with
-        // no shell after a crash.
-        Err(PlatformError::Unsupported(
-            "set_native_taskbar_visible: implemented in phase 05, with its guardian",
-        ))
+    fn set_native_taskbar_visible(&self, visible: bool) -> Result<()> {
+        if visible {
+            taskbar::restore(&self.taskbar, RestoreReason::Normal)
+        } else {
+            taskbar::hide(&self.taskbar)
+        }
     }
 }

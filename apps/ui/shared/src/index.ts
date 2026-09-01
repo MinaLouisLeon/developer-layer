@@ -31,3 +31,6 @@ export type { GpuVendor } from "./generated/GpuVendor";
 export type { MemoryMetrics } from "./generated/MemoryMetrics";
 export type { MetricsSnapshot } from "./generated/MetricsSnapshot";
 export type { NetworkMetrics } from "./generated/NetworkMetrics";
+export type { DockAction } from "./generated/DockAction";
+export type { DockEntry } from "./generated/DockEntry";
+export type { DockWindow } from "./generated/DockWindow";

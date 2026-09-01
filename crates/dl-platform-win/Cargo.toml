@@ -11,6 +11,7 @@ description = "Windows implementation of the Developer Layer platform trait."
 dl-core = { workspace = true }
 dl-platform = { workspace = true }
 dl-wm = { workspace = true }
+png = "0.17"
 
 # Gated by target, not by feature: on Linux this crate compiles to an empty
 # library so `cargo build --workspace` works in CI without cross-compiling.
@@ -26,6 +27,10 @@ windows = { version = "0.62", features = [
     "Win32_UI_HiDpi",
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Kernel",
+    "Win32_Storage_Xps",
 ] }
 windows-core = "0.62"
 winreg = "0.55"

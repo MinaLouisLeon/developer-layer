@@ -12,5 +12,9 @@ dl-core = { workspace = true }
 dl-platform = { workspace = true }
 dl-wm = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 serde = { workspace = true }
 ts-rs = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+dl-platform-win = { workspace = true }

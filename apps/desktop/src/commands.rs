@@ -319,3 +319,93 @@ mod tests {
         assert_eq!(base64(&[0x89, 0x50, 0x4E, 0x47]), "iVBORw==");
     }
 }
+
+// ---- taskbar replacement ----
+
+/// Dock entries: pinned applications plus whatever else is running.
+#[tauri::command]
+pub fn dock_entries(state: tauri::State<'_, AppState>) -> Result<Vec<DockEntry>, String> {
+    engine(&state)?.dock().map_err(|e| e.to_string())
+}
+
+/// Record which window holds the foreground.
+///
+/// Drives the dock's click semantics: clicking the focused window minimises it
+/// rather than re-focusing, which would look like a dead click.
+#[tauri::command]
+pub fn set_foreground(
+    state: tauri::State<'_, AppState>,
+    window: Option<u64>,
+) -> Result<(), String> {
+    engine(&state)?.set_foreground(window.map(WindowId));
+    Ok(())
+}
+
+/// Act on a dock click.
+///
+/// Focus, minimise and restore happen in the engine; launching is completed
+/// here because it needs `dl-apps`, which the engine deliberately does not
+/// depend on.
+#[tauri::command]
+pub fn click_dock_entry(
+    state: tauri::State<'_, AppState>,
+    app: Option<String>,
+) -> Result<DockAction, String> {
+    let entries = engine(&state)?.dock().map_err(|e| e.to_string())?;
+
+    let wanted = app.map(AppId::new);
+    let entry = entries
+        .into_iter()
+        .find(|e| e.app == wanted)
+        .ok_or_else(|| "no such dock entry".to_string())?;
+
+    let action = engine(&state)?
+        .click_dock_entry(&entry)
+        .map_err(|e| e.to_string())?;
+
+    if let DockAction::Launch(app) = &action {
+        launch_app(state, app.as_str().to_string())?;
+    }
+
+    Ok(action)
+}
+
+/// Capture a window as a PNG data URL for a hover preview.
+#[tauri::command]
+pub fn window_thumbnail(window: u64) -> Result<Option<String>, String> {
+    #[cfg(windows)]
+    {
+        use windows::Win32::Foundation::HWND;
+        let hwnd = HWND(window as *mut core::ffi::c_void);
+        match dl_platform_win::capture_window(hwnd) {
+            Ok(png) => Ok(Some(format!("data:image/png;base64,{}", base64(&png)))),
+            // A suspended or minimised window has nothing to capture; that is
+            // routine, not an error worth surfacing.
+            Err(_) => Ok(None),
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = window;
+        Ok(None)
+    }
+}
+
+/// Turn native-taskbar replacement on or off.
+///
+/// Enabling reserves the dock's edge and hides the native taskbars — but only
+/// after the guardian is running, so a hard kill still puts the shell back.
+#[tauri::command]
+pub fn set_taskbar_replacement(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut engine = engine(&state)?;
+    engine
+        .set_taskbar_replacement(enabled)
+        .map_err(|e| e.to_string())?;
+
+    let config = engine.config().clone();
+    dl_config::save(&config).map_err(|e| e.to_string())
+}

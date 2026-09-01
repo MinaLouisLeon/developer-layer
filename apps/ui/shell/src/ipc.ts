@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 
 import type {
   Config,
+  DockAction,
+  DockEntry,
   MetricsSnapshot,
   Monitor,
   PassReport,
@@ -137,4 +139,31 @@ export function launchApp(app: string): Promise<void> {
 /** Re-run discovery, replace the pinned list and persist it. */
 export function refreshPinnedApps(): Promise<PinnedApp[]> {
   return invoke<PinnedApp[]>("refresh_pinned_apps");
+}
+
+// ---- taskbar replacement ----
+
+/** Pinned applications plus whatever else is running. */
+export function dockEntries(): Promise<DockEntry[]> {
+  return invoke<DockEntry[]>("dock_entries");
+}
+
+/** Act on a dock click; the backend decides what the click means. */
+export function clickDockEntry(app: string | null): Promise<DockAction> {
+  return invoke<DockAction>("click_dock_entry", { app });
+}
+
+/** A window capture as a PNG data URL, or null when there is nothing to show. */
+export function windowThumbnail(window: number): Promise<string | null> {
+  return invoke<string | null>("window_thumbnail", { window });
+}
+
+/**
+ * Turn native-taskbar replacement on or off.
+ *
+ * Enabling starts the guardian process before hiding anything, so a hard kill
+ * still restores the shell.
+ */
+export function setTaskbarReplacement(enabled: boolean): Promise<void> {
+  return invoke<void>("set_taskbar_replacement", { enabled });
 }

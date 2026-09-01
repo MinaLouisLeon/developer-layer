@@ -88,7 +88,7 @@ which is the first real check for anything touching Win32.
 | 02 | Layout edit mode, per-app slots, display connect/disconnect, settings ✅ |
 | 03 | Telemetry tile ✅ |
 | 04 | Dock as launcher ✅ |
-| 05 | Taskbar replacement and its guardian process |
+| 05 | Taskbar replacement and its guardian process ✅ |
 | 06 | mino-workbench embed and archive actions |
 | 07 | Atlas command bar |
 | 08 | Atlas voice |
