@@ -165,9 +165,6 @@ export function windowThumbnail(window: number): Promise<string | null> {
  * Enabling starts the guardian process before hiding anything, so a hard kill
  * still restores the shell.
  */
-export function setTaskbarReplacement(enabled: boolean): Promise<void> {
-  return invoke<void>("set_taskbar_replacement", { enabled });
-}
 
 /** One thing voice can install, as the settings screen lists it. */
 export interface Installable {
@@ -204,4 +201,17 @@ export function onInstall(
 
 export function voiceCapability(): Promise<Capability> {
   return invoke<Capability>("atlas_voice_capability");
+}
+
+/** Whether the logon task exists, asked of the scheduler rather than the config. */
+export function startAtLogon(): Promise<boolean> {
+  return invoke<boolean>("start_at_logon");
+}
+
+export function setStartAtLogon(enabled: boolean): Promise<void> {
+  return invoke<void>("set_start_at_logon", { enabled });
+}
+
+export function setTaskbarReplacement(enabled: boolean): Promise<void> {
+  return invoke<void>("set_taskbar_replacement", { enabled });
 }

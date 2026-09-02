@@ -1,0 +1,81 @@
+name: Release
+
+# Two triggers on purpose. `workflow_dispatch` is how the bundle gets proven
+# *before* a tag exists — `tauri build` had never run at all until this
+# workflow, so the installers were unverified while everything else was green.
+# Tagging then publishes what has already been shown to build.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Attach the installers to a draft release"
+        type: boolean
+        default: false
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Installers (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # The release build is the first thing that compiles the whole workspace
+      # with optimisations and links it, so it is also the first thing that
+      # would find an optimisation-only failure. `tauri build` runs the
+      # frontend build itself through `beforeBuildCommand`.
+      - name: Build the installers
+        run: npm run tauri -- build --verbose
+
+      # Named explicitly rather than globbed into the release, so a bundler
+      # that silently produced nothing fails here instead of publishing an
+      # empty release.
+      - name: Collect the installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          msi=$(find target/release/bundle/msi -name '*.msi' -print -quit)
+          nsis=$(find target/release/bundle/nsis -name '*-setup.exe' -print -quit)
+          test -n "$msi"  || { echo "::error::no MSI was produced"; exit 1; }
+          test -n "$nsis" || { echo "::error::no NSIS installer was produced"; exit 1; }
+          cp "$msi" "$nsis" dist/
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: developer-layer-installers
+          path: dist/*
+          if-no-files-found: error
+
+      # Pre-release, always. Nothing here has run on real hardware, and a
+      # release that does not say so invites somebody to install a shell
+      # replacement expecting a finished one.
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          draft: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          prerelease: true
+          generate_release_notes: true
+          body_path: docs/RELEASE_NOTES.md
+          fail_on_unmatched_files: true

@@ -409,6 +409,12 @@ impl Engine {
     ///
     /// Slot bindings survive: they reference an `AppId`, not a path, so an app
     /// rediscovered at a new location keeps the slot it was assigned.
+    /// Remember whether the logon task is registered.
+    pub fn set_start_at_logon(&mut self, enabled: bool) -> &Config {
+        self.config.general.start_at_logon = enabled;
+        &self.config
+    }
+
     /// Select the speech model, after the settings screen downloaded one.
     ///
     /// Here rather than in the Tauri layer for the reason every config change

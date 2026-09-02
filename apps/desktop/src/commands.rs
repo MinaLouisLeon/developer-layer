@@ -436,3 +436,26 @@ pub fn set_taskbar_replacement(
     let config = engine.config().clone();
     dl_config::save(&config).map_err(|e| e.to_string())
 }
+
+/// Whether Developer Layer is registered to start at logon.
+///
+/// Asked of the scheduler rather than read from the config: the task can be
+/// removed in Task Scheduler without this application knowing, and a switch
+/// that shows what we last wrote rather than what is true would be lying.
+#[tauri::command]
+pub fn start_at_logon() -> bool {
+    dl_apps::autostart::is_registered()
+}
+
+/// Register or remove the logon task, and remember the choice.
+#[tauri::command]
+pub fn set_start_at_logon(state: tauri::State<'_, AppState>, enabled: bool) -> Result<(), String> {
+    let executable = std::env::current_exe()
+        .map_err(|e| format!("could not find this application's own path: {e}"))?;
+
+    dl_apps::autostart::set_enabled(enabled, &executable).map_err(|e| e.to_string())?;
+
+    let mut engine = engine(&state)?;
+    let config = engine.set_start_at_logon(enabled);
+    dl_config::save(config).map_err(|e| e.to_string())
+}

@@ -40,7 +40,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.8.0"
 edition = "2021"
 # 1.85 is the floor edition 2024 imposes. `mino-core` pulls russh, whose
 # transitive zeroize is published as edition 2024 and will not parse below it.
@@ -98,4 +98,10 @@ axum = { version = "0.8.1", features = ["ws"] }
 codegen-units = 1
 lto = true
 opt-level = "s"
-strip = true
+# Symbols are kept on purpose while this is a beta. Stripping saves perhaps
+# fifteen megabytes in the installer and costs every panic report its
+# backtrace — and panics matter more here than in most applications, because
+# the panic hook is one of the four routes that put the user's taskbar back.
+# A build whose purpose is finding faults should be able to describe them.
+strip = false
+debug = "line-tables-only"

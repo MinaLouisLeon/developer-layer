@@ -5,6 +5,11 @@ export type GeneralConfig = {
  * Register a Task Scheduler entry running at logon with highest
  * privileges. Elevation is required to manage windows owned by elevated
  * processes; without it, tiling silently skips them.
+ *
+ * **Off by default.** This is a shell replacement: something that hides
+ * the taskbar and moves every window should not start itself elevated at
+ * logon on a machine where it has never been run once. Turn it on from
+ * the settings screen after it has behaved.
  */
 startAtLogon: boolean, 
 /**

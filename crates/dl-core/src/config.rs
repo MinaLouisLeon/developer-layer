@@ -37,6 +37,11 @@ pub struct GeneralConfig {
     /// Register a Task Scheduler entry running at logon with highest
     /// privileges. Elevation is required to manage windows owned by elevated
     /// processes; without it, tiling silently skips them.
+    ///
+    /// **Off by default.** This is a shell replacement: something that hides
+    /// the taskbar and moves every window should not start itself elevated at
+    /// logon on a machine where it has never been run once. Turn it on from
+    /// the settings screen after it has behaved.
     pub start_at_logon: bool,
     /// Hide `Shell_TrayWnd` and reserve space for our dock via `SHAppBarMessage`.
     pub replace_native_taskbar: bool,
@@ -48,7 +53,7 @@ pub struct GeneralConfig {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            start_at_logon: true,
+            start_at_logon: false,
             replace_native_taskbar: false,
             panic_restore_hotkey: "Ctrl+Alt+Shift+T".into(),
         }

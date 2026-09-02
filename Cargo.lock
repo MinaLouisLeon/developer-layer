@@ -1189,7 +1189,7 @@ dependencies = [
 
 [[package]]
 name = "dl-apps"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "png 0.17.16",
@@ -1202,7 +1202,7 @@ dependencies = [
 
 [[package]]
 name = "dl-archive"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "serde",
@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "dl-atlas"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "nucleo-matcher",
@@ -1225,7 +1225,7 @@ dependencies = [
 
 [[package]]
 name = "dl-config"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "serde",
@@ -1237,7 +1237,7 @@ dependencies = [
 
 [[package]]
 name = "dl-core"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1247,7 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "dl-desktop"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-apps",
  "dl-archive",
@@ -1275,7 +1275,7 @@ dependencies = [
 
 [[package]]
 name = "dl-engine"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "dl-platform",
@@ -1289,7 +1289,7 @@ dependencies = [
 
 [[package]]
 name = "dl-metrics"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "nvml-wrapper",
@@ -1301,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "dl-platform"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "thiserror 2.0.20",
@@ -1309,7 +1309,7 @@ dependencies = [
 
 [[package]]
 name = "dl-platform-mac"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "dl-platform",
@@ -1317,7 +1317,7 @@ dependencies = [
 
 [[package]]
 name = "dl-platform-win"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "dl-platform",
@@ -1330,7 +1330,7 @@ dependencies = [
 
 [[package]]
 name = "dl-voice"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "cpal",
  "dl-atlas",
@@ -1345,7 +1345,7 @@ dependencies = [
 
 [[package]]
 name = "dl-wm"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "dl-core",
  "serde",
@@ -2972,7 +2972,7 @@ dependencies = [
 
 [[package]]
 name = "mino-core"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",

@@ -18,7 +18,8 @@
     "gen:types": "cargo test -p dl-core -p dl-engine -p dl-metrics -p dl-archive -p dl-atlas export_bindings",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
-    "test:ui": "npm run test -w @mino/ui"
+    "test:ui": "npm run test -w @mino/ui",
+    "tauri": "tauri"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",

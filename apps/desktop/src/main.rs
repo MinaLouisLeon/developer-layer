@@ -141,6 +141,8 @@ fn main() {
             commands::click_dock_entry,
             commands::window_thumbnail,
             commands::set_taskbar_replacement,
+            commands::start_at_logon,
+            commands::set_start_at_logon,
             archive::archive_available,
             archive::archive_supported,
             archive::archive_extract,

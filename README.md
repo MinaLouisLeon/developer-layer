@@ -4,9 +4,15 @@ A Windows 11 shell replacement built around a strict no-overlap grid. Every
 application and the telemetry panel tile into assigned slots across two or three
 displays, with an embedded Nushell workbench and a voice assistant called Atlas.
 
-**Status:** phase 08. The slot engine, telemetry, dock, taskbar replacement and
+**Status:** 0.8.0-beta.1 — the first installable build. The slot engine, telemetry, dock, taskbar replacement and
 the embedded workbench, the Atlas command bar and voice are in; the LM Studio
 agent and macOS remain.
+
+## Installing
+
+Installers are attached to each [release](../../releases). They are not
+code-signed, so SmartScreen will warn; see the release notes for what that
+means and for how to get your taskbar back if you turn that feature on.
 
 ## Voice
 

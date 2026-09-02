@@ -9,6 +9,7 @@
 //! including AUMIDs, and those same shell items produce 256px icons through
 //! `IShellItemImageFactory` — so packaged and unpackaged apps share one path.
 
+pub mod autostart;
 pub mod catalog;
 pub mod icons;
 pub mod launch;

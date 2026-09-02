@@ -598,3 +598,62 @@ body {
   color: var(--atlas-accent);
   cursor: default;
 }
+
+/* Settings. */
+.settings {
+  margin-top: var(--atlas-space-6);
+  padding: var(--atlas-space-4);
+  border: 1px solid var(--atlas-hairline);
+  border-radius: var(--atlas-radius-lg);
+  background: var(--atlas-surface);
+}
+
+.settings h2 {
+  margin: 0 0 var(--atlas-space-3);
+  font-size: var(--atlas-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--atlas-text-muted);
+}
+
+.settings__row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--atlas-space-3);
+  align-items: start;
+  padding: var(--atlas-space-3) 0;
+  border-top: 1px solid var(--atlas-hairline);
+  cursor: pointer;
+}
+
+.settings__row input {
+  margin-top: 2px;
+  accent-color: var(--atlas-accent);
+}
+
+.settings__row input:disabled {
+  cursor: default;
+}
+
+.settings__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings__name {
+  font-size: var(--atlas-text-sm);
+}
+
+.settings__note {
+  font-size: var(--atlas-text-xs);
+  color: var(--atlas-text-muted);
+  line-height: 1.5;
+}
+
+.settings__note strong {
+  color: var(--atlas-text);
+  font-weight: 500;
+  font-family: var(--atlas-font-mono);
+}
