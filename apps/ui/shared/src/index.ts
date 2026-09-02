@@ -34,3 +34,6 @@ export type { NetworkMetrics } from "./generated/NetworkMetrics";
 export type { DockAction } from "./generated/DockAction";
 export type { DockEntry } from "./generated/DockEntry";
 export type { DockWindow } from "./generated/DockWindow";
+export type { ArchiveOutcome } from "./generated/ArchiveOutcome";
+export type { Overwrite } from "./generated/Overwrite";
+export type { Compression } from "./generated/Compression";

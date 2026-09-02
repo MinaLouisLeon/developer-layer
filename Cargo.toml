@@ -12,6 +12,12 @@ members = [
     "crates/dl-apps",
     "crates/dl-atlas",
     "apps/desktop",
+    "crates/dl-archive",
+    # Vendored from mino-workbench. In `members` so the workspace type-checks it
+    # and the desktop app links it; deliberately *not* in `default-members`,
+    # because upstream owns its test suite and a bare `cargo test` here should
+    # run Developer Layer's own.
+    "vendor/mino/crates/mino-core",
 ]
 
 # `apps/desktop` pulls in Tauri, which needs webkit2gtk on Linux. Excluding it
@@ -28,12 +34,15 @@ default-members = [
     "crates/dl-metrics",
     "crates/dl-apps",
     "crates/dl-atlas",
+    "crates/dl-archive",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.82"
+# 1.85 is the floor edition 2024 imposes. `mino-core` pulls russh, whose
+# transitive zeroize is published as edition 2024 and will not parse below it.
+rust-version = "1.85"
 license = "MIT"
 repository = "https://github.com/MinaLouisLeon/developer-layer"
 
@@ -48,12 +57,36 @@ dl-config = { path = "crates/dl-config" }
 dl-metrics = { path = "crates/dl-metrics" }
 dl-apps = { path = "crates/dl-apps" }
 dl-atlas = { path = "crates/dl-atlas" }
+dl-archive = { path = "crates/dl-archive" }
+
+# Vendored. `vendor/mino/crates/mino-core/Cargo.toml` is byte-identical to
+# upstream, which means it inherits every dependency below from this table by
+# `.workspace = true`. Keeping it unmodified is what makes a resync a copy
+# rather than a merge — see vendor/mino/VENDOR.md.
+mino-core = { path = "vendor/mino/crates/mino-core" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 tracing = "0.1"
-ts-rs = { version = "10", features = ["serde-compat", "no-serde-warnings"] }
+ts-rs = { version = "10", features = ["serde-compat", "serde-json-impl", "no-serde-warnings"] }
+
+# mino-core's dependency set, versions as upstream pins them. See the note on
+# `mino-core` above for why these live here rather than in its own manifest.
+anyhow = "1.0.95"
+async-trait = "0.1.83"
+base64 = "0.22.1"
+clap = { version = "4.5.23", features = ["derive"] }
+futures-util = "0.3.31"
+portable-pty = "0.8.1"
+tokio = { version = "1.42.0", features = ["full"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+uuid = { version = "1.11.0", features = ["v4", "serde"] }
+which = "7.0.1"
+russh = "0.49.0"
+russh-sftp = "2.0.5"
+tokio-tungstenite = "0.24.0"
+axum = { version = "0.8.1", features = ["ws"] }
 
 # NOTE: panic = "abort" is deliberately NOT set. The shell hides the native
 # taskbar, so the panic hook must be able to run and restore it before exit.

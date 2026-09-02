@@ -1,0 +1,18 @@
+[package]
+name = "dl-archive"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Archive actions driven by WinRAR's command-line tools. No GUI is ever launched."
+
+[dependencies]
+dl-core = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+ts-rs = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"

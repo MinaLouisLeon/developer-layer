@@ -87,5 +87,12 @@ jobs:
       - name: Clippy (including dl-platform-win)
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      # `--exclude mino-core` is about ownership, not confidence. Its suite is
+      # upstream's, runs against real git repositories in temp directories and
+      # is already run by mino-workbench's own CI; re-running it on every push
+      # here buys minutes and flake surface, not signal. The vendored copy is
+      # still type-checked and clippy-linted by the step above and by the
+      # Linux job's windows-gnu pass, which is what catches a bad resync.
+      # To run it deliberately: `cargo test -p mino-core`.
       - name: Tests
-        run: cargo test --workspace
+        run: cargo test --workspace --exclude mino-core
