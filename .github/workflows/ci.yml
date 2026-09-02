@@ -58,7 +58,24 @@ jobs:
 
       - run: npm ci
       - run: npm run typecheck
+
+      # Upstream's own UI suite, run against the vendored copy. The archive
+      # menu patches five of mino's files and this covers all five, so it is
+      # what says the patch left the workbench working — and what will say so
+      # again after the next resync. Developer Layer's archive tests are in it.
+      - run: npm run test:ui
+
       - run: npm run build
+
+      # The vendored UI's TypeScript comes from mino-core by ts-rs, exactly as
+      # ours comes from dl-core, and drifts the same way after a resync.
+      - name: The workbench's generated TypeScript is up to date
+        env:
+          TS_RS_EXPORT_DIR: ${{ github.workspace }}/vendor/mino/ui/src/Types
+        run: |
+          cargo test -p mino-core export_bindings
+          git diff --exit-code -- vendor/mino/ui/src/Types/generated \
+            || (echo "::error::The workbench's bindings are stale after a mino-core change." && exit 1)
 
   # Only Windows can compile the platform crate and Tauri, so this job is the
   # first real check on anything touching Win32.

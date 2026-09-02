@@ -19,8 +19,16 @@ dl-config = { workspace = true }
 dl-metrics = { workspace = true }
 dl-apps = { workspace = true }
 dl-atlas = { workspace = true }
+dl-archive = { workspace = true }
+
+# The vendored workbench shares this process and this core directly, which is
+# the whole point of embedding it rather than shelling out to a second app.
+mino-core = { workspace = true }
 
 tauri = { version = "2", features = [] }
+# The workbench's two plugins, and only its. See apps/desktop/capabilities.
+tauri-plugin-dialog = "2.0.4"
+tauri-plugin-opener = "2.5.4"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }

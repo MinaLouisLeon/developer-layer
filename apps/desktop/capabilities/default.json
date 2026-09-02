@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the shell and the vendored workbench windows are allowed to do. Beyond the core defaults only the folder picker and opening a github.com address are granted: every filesystem, process and window operation goes through a command, never through a plugin, which is what keeps the rules in Rust where they are tested.",
+  "windows": ["shell", "mino"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    }
+  ]
+}

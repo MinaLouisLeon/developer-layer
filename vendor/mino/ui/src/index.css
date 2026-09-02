@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-surface font-sans text-text antialiased;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  /* xterm paints its own background; keep it flush inside the pane. */
+  .xterm .xterm-viewport {
+    @apply bg-surfaceSunken;
+  }
+}

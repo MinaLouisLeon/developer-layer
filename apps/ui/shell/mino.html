@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mino workbench</title>
+  </head>
+  <body>
+    <!--
+      The vendored workbench's page. Its entry point is upstream's own
+      `main.tsx`, untouched: the workbench is a window the slot engine tiles
+      like any other application, not a component inside the shell page, so it
+      keeps its own document, its own Tailwind preflight and its own root.
+
+      This file lives here rather than in `vendor/` because it belongs to the
+      host's Vite build — it is the second entry in `vite.config.ts`, which is
+      what makes `/mino.html` resolve identically on the dev server and in the
+      bundle, and so lets the Tauri window name a plain relative URL.
+    -->
+    <div id="root"></div>
+    <script type="module" src="/../../../vendor/mino/ui/src/main.tsx"></script>
+  </body>
+</html>

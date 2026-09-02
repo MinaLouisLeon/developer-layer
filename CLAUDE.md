@@ -13,8 +13,8 @@ raise it explicitly rather than quietly building something else.
 | Layout editing | Direct manipulation via edit mode on the live workspace. No diagram editor — so layouts can only be edited for currently connected displays. |
 | Display changes | Layouts saved per display set, with a designated default as fallback. Orphaned windows **minimise to the dock**, never force-placed. All disconnect-minimised windows restore on reconnect. |
 | Dock | Full taskbar replacement — running state, focus and minimise, thumbnails. |
-| mino-workbench | Vendored into this monorepo, sharing the Rust core directly. |
-| WinRAR | No GUI. Archive actions in mino's file tree via `rar.exe`. |
+| mino-workbench | Vendored into this monorepo, sharing the Rust core directly. Embedded as a **second window**, not a component, so the slot engine tiles it like any other app. |
+| WinRAR | No GUI. Archive actions in mino's file tree via `rar.exe`. RAR only — `UnRAR.exe` reads nothing else. |
 | Elevation | Auto-elevate at logon via Task Scheduler. |
 | Licence | MIT. **No seelen-ui code, ever** — it is AGPL-3.0 and would relicense this project. |
 | Assistant | Atlas. Visual identity, text command bar, voice. LM Studio agent later. |
@@ -70,6 +70,29 @@ raise it explicitly rather than quietly building something else.
   type exceeds JS safe integers, but Tauri's transport is JSON so the runtime
   value is a number. Coerce through `num()` in the UI rather than assuming
   either.
+
+- **Everything vendored is recorded in `vendor/mino/VENDOR.md`.** `mino-core`
+  is byte-identical to upstream, which is only possible because the root
+  `Cargo.toml` supplies its dependencies; keep it that way, so a resync is a
+  copy rather than a merge. Every deviation anywhere under `vendor/` belongs in
+  that file's patch table — it is the whole cost of the next resync, and an
+  unrecorded one is a change that will be silently reverted.
+- **The vendored workbench keeps upstream's Tauri command names, unprefixed.**
+  They are written down in its `Types/modules/api.ts`, so leaving them alone is
+  what lets 274 UI files come across untouched. A collision with one of ours is
+  a `generate_handler!` compile error, not a silent misroute.
+- **`@` in `apps/ui/shell/vite.config.ts` is reserved for the vendored UI.**
+  Developer Layer's own code uses relative paths and the `@developer-layer/*`
+  package names; an `@` import in the shell would silently resolve into
+  `vendor/`.
+- **React, react-dom and `@tauri-apps/api` must each be a single instance.**
+  Upstream pins them exactly and the shell uses ranges, which installs two
+  copies; the root `overrides` block holds react and react-dom at one version,
+  and they are bumped together. react-dom refuses a mismatched react outright.
+- **`npm run test:ui` is upstream's suite against the vendored copy.** It is
+  what says a patch or a resync left the workbench working — it covers every
+  file the archive menu touches. Run it before every push that changes
+  anything under `vendor/`.
 
 ## Known Win32 traps
 

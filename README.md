@@ -4,8 +4,16 @@ A Windows 11 shell replacement built around a strict no-overlap grid. Every
 application and the telemetry panel tile into assigned slots across two or three
 displays, with an embedded Nushell workbench and a voice assistant called Atlas.
 
-**Status:** phase 00 — foundations. The workspace, type bridge and slot engine
-exist and are tested. Nothing yet manipulates a real window.
+**Status:** phase 06. The slot engine, telemetry, dock, taskbar replacement and
+the embedded workbench are in; Atlas and macOS remain.
+
+## The workbench
+
+`mino-workbench` is embedded by sharing its Rust core directly: one process,
+one `mino-core`, and a second window rather than a second application. The slot
+engine tiles that window like any other. WinRAR has no GUI here either —
+extract and compress are actions in the workbench's file tree, driven by
+`Rar.exe` and `UnRAR.exe`.
 
 ## The core idea
 
@@ -34,11 +42,14 @@ crates/
   dl-metrics       telemetry sampling: sysinfo, DXGI, PDH, NVML
   dl-apps          application resolution, icons and launching
   dl-atlas         command registry, wake word, speech, phases 07-09
+  dl-archive       WinRAR console tools — no GUI is ever launched
 apps/
   desktop          Tauri app: command dispatch and window lifecycle
   ui/shared        generated TypeScript domain types
   ui/design        Atlas design tokens
-  ui/shell         React frontend
+  ui/shell         React frontend, and the workbench's page
+vendor/
+  mino             mino-workbench, vendored — see vendor/mino/VENDOR.md
 ```
 
 Two rules hold this together:
@@ -69,6 +80,7 @@ npm run gen:types
 # Frontend
 npm install
 npm run typecheck
+npm run test:ui      # the vendored workbench's suite, upstream's and ours
 npm run build
 
 # Full desktop app (Windows or macOS only)
@@ -89,7 +101,7 @@ which is the first real check for anything touching Win32.
 | 03 | Telemetry tile ✅ |
 | 04 | Dock as launcher ✅ |
 | 05 | Taskbar replacement and its guardian process ✅ |
-| 06 | mino-workbench embed and archive actions |
+| 06 | mino-workbench embed and archive actions ✅ |
 | 07 | Atlas command bar |
 | 08 | Atlas voice |
 | 09 | LM Studio agent |
@@ -98,6 +110,10 @@ which is the first real check for anything touching Win32.
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
+
+`mino-workbench` is vendored under `vendor/mino`, MIT, Copyright (c) 2026 Mina
+Louis. Its notice is preserved there, and `vendor/mino/VENDOR.md` records the
+commit, every local patch and how to resync.
 
 `seelen-ui` was studied as a reference for which Win32 APIs solve which problem.
 It is **AGPL-3.0**, so no code from it appears here and none may be added;

@@ -20,6 +20,16 @@
         "resizable": true,
         "decorations": true,
         "visible": true
+      },
+      {
+        "label": "mino",
+        "title": "mino workbench",
+        "url": "mino.html",
+        "width": 1280,
+        "height": 820,
+        "resizable": true,
+        "decorations": true,
+        "visible": true
       }
     ],
     "security": {
@@ -28,12 +38,19 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
-    "icon": ["icons/icon.ico"],
+    "targets": [
+      "msi",
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico"
+    ],
     "copyright": "MIT",
     "shortDescription": "Windows shell replacement with a no-overlap slot grid.",
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper" }
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
     }
   }
 }

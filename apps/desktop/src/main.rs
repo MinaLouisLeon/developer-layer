@@ -1,8 +1,13 @@
 // Release builds must not spawn a console window behind the shell.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod archive;
 mod commands;
+mod mino;
 mod platform;
+
+/// The workbench window's label, as `tauri.conf.json` declares it.
+const MINO_WINDOW: &str = "mino";
 
 fn main() {
     // The guardian branch runs before anything else: it is the same binary
@@ -48,6 +53,14 @@ fn main() {
     );
 
     tauri::Builder::default()
+        // The workbench's two plugins. Nothing else in the shell uses them:
+        // every filesystem and process call goes through mino's transport
+        // commands, and `opener` exists so a github.com address leaves through
+        // the operating system's browser rather than by letting a webview be
+        // navigated somewhere it was not built for.
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .manage(mino::state::AppState::new())
         .setup({
             let metrics = metrics.clone();
             move |app| {
@@ -80,7 +93,68 @@ fn main() {
             commands::click_dock_entry,
             commands::window_thumbnail,
             commands::set_taskbar_replacement,
+            archive::archive_available,
+            archive::archive_supported,
+            archive::archive_extract,
+            archive::archive_compress,
+            // The vendored workbench's forty, under upstream's own names. See
+            // `mino.rs` for why they are not prefixed.
+            mino::commands::connection::connect,
+            mino::commands::connection::disconnect,
+            mino::commands::fs::list_dir,
+            mino::commands::fs::stat,
+            mino::commands::fs::search_files,
+            mino::commands::fs::read_file,
+            mino::commands::fs::write_file,
+            mino::commands::git::git_repository,
+            mino::commands::git::git_status,
+            mino::commands::git::git_stage,
+            mino::commands::git::git_unstage,
+            mino::commands::git::git_discard,
+            mino::commands::git::git_commit,
+            mino::commands::git_history::git_diff,
+            mino::commands::git_history::git_log,
+            mino::commands::git_history::git_show,
+            mino::commands::git_history::git_commit_diff,
+            mino::commands::git_history::git_blame,
+            mino::commands::git_branches::git_branches,
+            mino::commands::git_branches::git_checkout,
+            mino::commands::git_branches::git_create_branch,
+            mino::commands::git_branches::git_delete_branch,
+            mino::commands::git_stash::git_stash_list,
+            mino::commands::git_stash::git_stash_push,
+            mino::commands::git_stash::git_stash_apply,
+            mino::commands::git_stash::git_stash_drop,
+            mino::commands::git_remote::git_remotes,
+            mino::commands::git_remote::git_fetch,
+            mino::commands::git_remote::git_pull,
+            mino::commands::git_remote::git_push,
+            mino::commands::git_remote::git_conflicts,
+            mino::commands::git_remote::git_resolve,
+            mino::commands::github::github_probe,
+            mino::commands::github::github_query,
+            mino::commands::pty::open_pty,
+            mino::commands::pty::write_pty,
+            mino::commands::pty::resize_pty,
+            mino::commands::pty::close_pty,
+            mino::commands::shell::run_structured,
+            mino::commands::shell::probe_shell,
         ])
+        .on_window_event(|window, event| {
+            // Closing the workbench must not leave a shell running behind it.
+            // The registry also kills sessions on drop; this makes it
+            // immediate, and it is scoped to that window so closing the
+            // Developer Layer shell does not tear down a workbench the user
+            // is still using.
+            if window.label() == MINO_WINDOW && matches!(event, tauri::WindowEvent::Destroyed) {
+                use tauri::Manager;
+                if let Some(transport) = window.state::<mino::state::AppState>().take() {
+                    tauri::async_runtime::block_on(async move {
+                        let _ = transport.disconnect().await;
+                    });
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("failed to start the Tauri application");
 }
