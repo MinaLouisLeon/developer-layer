@@ -7,6 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Dock } from "./Dock";
 import { LayoutEditor } from "./LayoutEditor";
 import { Telemetry } from "./Telemetry";
+import { VoiceSetup } from "./VoiceSetup";
 import { getConfig, getLayout, listMonitors, runPass, syncDisplays } from "./ipc";
 
 /**
@@ -119,6 +120,8 @@ export function App() {
           Re-detect displays
         </button>
       </div>
+
+      <VoiceSetup onError={setError} />
 
       <div ref={editor}>
         {layout && monitors.length > 0 ? (

@@ -409,6 +409,16 @@ impl Engine {
     ///
     /// Slot bindings survive: they reference an `AppId`, not a path, so an app
     /// rediscovered at a new location keeps the slot it was assigned.
+    /// Select the speech model, after the settings screen downloaded one.
+    ///
+    /// Here rather than in the Tauri layer for the reason every config change
+    /// is: the engine owns the config, and a second writer would be a second
+    /// thing racing the save.
+    pub fn set_voice_model(&mut self, model: std::path::PathBuf) -> &Config {
+        self.config.atlas.voice_model = Some(model);
+        &self.config
+    }
+
     pub fn set_pinned_apps(&mut self, apps: Vec<dl_core::PinnedApp>) -> &Config {
         self.config.pinned_apps = apps;
         &self.config

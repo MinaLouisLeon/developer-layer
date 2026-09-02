@@ -119,10 +119,14 @@ pub struct AtlasConfig {
     /// Whether Atlas answers out loud. Off by default: a shell that talks
     /// unprompted is a shell people turn off entirely.
     pub speak_replies: bool,
-    /// Picovoice access key, for a wake word this build does not yet have.
+    /// Picovoice access key. Free, but personal, so it is never committed.
     pub picovoice_key: Option<String>,
-    /// The trained "Atlas" keyword, likewise.
+    /// The trained "Atlas" keyword file. Only a handful of words ship built in
+    /// and ours is not among them, so this one is made on Picovoice's console.
     pub wake_word: Option<PathBuf>,
+    /// Where Porcupine's library and parameters live. Defaults to a directory
+    /// beside the config, which is where the settings screen installs them.
+    pub picovoice_dir: Option<PathBuf>,
     /// OpenAI-compatible endpoint exposed by LM Studio.
     pub llm_endpoint: Option<String>,
 }
@@ -141,6 +145,7 @@ impl Default for AtlasConfig {
             speak_replies: false,
             picovoice_key: None,
             wake_word: None,
+            picovoice_dir: None,
             llm_endpoint: None,
         }
     }

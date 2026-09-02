@@ -33,8 +33,19 @@ pub struct VoiceAssets {
     /// Picovoice access key. Free to obtain, but personal, so it is never
     /// bundled and never committed.
     pub access_key: Option<String>,
-    /// The "Atlas" keyword file, `.ppn`.
+    /// The "Atlas" keyword file, `.ppn`. Trained on Picovoice's console —
+    /// only a handful of words ship built in and ours is not among them, so
+    /// this is the one piece nothing can fetch on the user's behalf.
     pub keyword: Option<PathBuf>,
+    /// Directory holding Porcupine's shared library and its parameters.
+    ///
+    /// Together because they are fetched together; a user who has one always
+    /// has the other, and reporting them apart would be two ways of saying
+    /// "the runtime is not installed".
+    pub runtime: Option<PathBuf>,
+    /// Whether that directory actually holds both files. Answered by
+    /// `dl-voice`, which knows what each platform names them.
+    pub runtime_installed: bool,
     /// The Whisper model, `.bin`.
     pub model: Option<PathBuf>,
 }
@@ -182,11 +193,21 @@ pub fn capability(
         }
     };
 
+    // Reported on its own because it is the only one of the three wake-word
+    // requirements the shell can install itself. The key needs the user's own
+    // account and the keyword needs a word trained on it; this is a download.
+    if !assets.runtime_installed {
+        missing.push(Missing {
+            what: "Porcupine's runtime".into(),
+            remedy: "Download it from the settings screen.".into(),
+        });
+    }
+
     Capability {
         // Push-to-talk needs no assets, so transcription is the only hard
         // requirement: a recording nothing can read is not a feature.
         usable: model,
-        wake_word: key && keyword && model,
+        wake_word: key && keyword && model && assets.runtime_installed,
         transcription: model,
         missing,
     }
@@ -232,6 +253,8 @@ mod tests {
         VoiceAssets {
             access_key: Some("pv-key".into()),
             keyword: Some(PathBuf::from("atlas.ppn")),
+            runtime: Some(PathBuf::from("picovoice")),
+            runtime_installed: true,
             model: Some(PathBuf::from("ggml-base.en.bin")),
         }
     }
@@ -348,6 +371,27 @@ mod tests {
         assert!(!capability.usable);
         assert_eq!(capability.missing.len(), 1);
         assert!(capability.triggers().is_empty());
+    }
+
+    #[test]
+    fn a_missing_porcupine_runtime_is_the_one_gap_the_shell_can_close_itself() {
+        // The key and the keyword need the user's own account and a trained
+        // word; this one is a download, so it is reported on its own rather
+        // than folded into a general "the wake word needs setting up".
+        let assets = VoiceAssets {
+            runtime_installed: false,
+            ..full()
+        };
+        let capability = capability(&assets, full_engines(), &present);
+
+        assert!(capability.usable, "push-to-talk is unaffected");
+        assert!(!capability.wake_word);
+        let gap = capability
+            .missing
+            .iter()
+            .find(|m| m.what.contains("Porcupine"))
+            .expect("named");
+        assert!(gap.remedy.contains("settings"), "{gap:?}");
     }
 
     #[test]

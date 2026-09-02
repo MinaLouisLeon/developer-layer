@@ -17,11 +17,21 @@ ask which, and quitting asks regardless of how confident the match was.
 
 Transcription is Whisper, loaded on the first utterance and dropped again once
 it has been idle, so a couple of hundred megabytes is not held all day for a
-feature used a few times an hour. Point `atlas.voiceModel` at a model file and
-set `atlas.voiceEnabled`; nothing else is required, and no account is.
+feature used a few times an hour. The model is not bundled — pick one from the
+settings screen and it downloads and selects itself. Then set
+`atlas.voiceEnabled`.
 
-Saying "Atlas" to wake it is not wired up — see `dl-voice`'s module
-documentation for why, and for what it would take.
+Saying "Atlas" wakes it too, once Porcupine is set up: download its runtime
+from the settings screen, get a free access key from
+[Picovoice](https://console.picovoice.ai), and train an "Atlas" keyword there —
+only a handful of words ship built in and ours is not among them, so that last
+step is the one nothing can do for you. Without any of it, push-to-talk works
+exactly the same.
+
+The wake word costs one thing worth knowing about: something has to be
+listening for it, so the microphone stays open while Atlas is idle and
+Windows' in-use indicator stays lit. Push-to-talk opens the device only while
+the key is held.
 
 ## The workbench
 

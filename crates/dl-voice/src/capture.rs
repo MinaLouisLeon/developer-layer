@@ -183,8 +183,4 @@ impl Ears for Microphone {
             let _ = receiver.try_iter().count();
         }
     }
-
-    fn wake_word_active(&self) -> bool {
-        false
-    }
 }

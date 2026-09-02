@@ -488,3 +488,113 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Voice setup. */
+.voice {
+  margin-top: var(--atlas-space-6);
+  padding: var(--atlas-space-4);
+  border: 1px solid var(--atlas-hairline);
+  border-radius: var(--atlas-radius-lg);
+  background: var(--atlas-surface);
+}
+
+.voice h2 {
+  margin: 0 0 var(--atlas-space-2);
+  font-size: var(--atlas-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--atlas-text-muted);
+}
+
+.voice__state {
+  margin: 0 0 var(--atlas-space-3);
+  font-size: var(--atlas-text-base);
+}
+
+.voice__gaps {
+  margin: 0 0 var(--atlas-space-4);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--atlas-space-2);
+}
+
+.voice__gaps li {
+  display: grid;
+  gap: 2px;
+  padding: var(--atlas-space-2) var(--atlas-space-3);
+  border-left: 2px solid var(--atlas-warn);
+  background: var(--atlas-raised);
+  font-size: var(--atlas-text-sm);
+}
+
+.voice__gaps strong {
+  font-weight: 500;
+}
+
+.voice__gaps span {
+  color: var(--atlas-text-muted);
+}
+
+.voice__assets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--atlas-space-1);
+}
+
+.voice__asset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--atlas-space-4);
+  padding: var(--atlas-space-2) 0;
+  border-top: 1px solid var(--atlas-hairline);
+}
+
+.voice__asset-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.voice__asset-name {
+  font-size: var(--atlas-text-sm);
+}
+
+.voice__asset-size {
+  color: var(--atlas-text-faint);
+}
+
+.voice__asset-summary {
+  font-size: var(--atlas-text-xs);
+  color: var(--atlas-text-muted);
+}
+
+.voice__asset-done {
+  flex: none;
+  font-size: var(--atlas-text-xs);
+  color: var(--atlas-ok);
+}
+
+.voice__asset button {
+  flex: none;
+  /* Fixed width so the label changing from "Download" to a percentage does not
+     make the row jump about while it counts up. */
+  min-width: 96px;
+  padding: var(--atlas-space-1) var(--atlas-space-3);
+  border: 1px solid var(--atlas-hairline-strong);
+  border-radius: var(--atlas-radius);
+  background: var(--atlas-raised);
+  color: var(--atlas-text);
+  font: inherit;
+  font-size: var(--atlas-text-sm);
+  cursor: pointer;
+}
+
+.voice__asset button:disabled {
+  color: var(--atlas-accent);
+  cursor: default;
+}

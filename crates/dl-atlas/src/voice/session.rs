@@ -47,10 +47,8 @@ impl Phase {
         matches!(self, Phase::Listening { .. })
     }
 
-    /// Whether the microphone should be open. Used by the backend to keep the
-    /// capture stream and the phase in agreement after any transition.
-    pub fn wants_audio(&self) -> bool {
-        self.is_listening()
+    pub fn is_armed(&self) -> bool {
+        matches!(self, Phase::Armed)
     }
 }
 
@@ -151,6 +149,13 @@ pub const NOISE_FLOOR: f32 = 0.02;
 pub struct Session {
     phase: Phase,
     timings: Timings,
+    /// Whether a wake word is being listened for.
+    ///
+    /// It changes when the microphone is open, not merely what is done with
+    /// the audio: waiting to hear "Atlas" means the device stays open while
+    /// armed, which is the difference between an indicator light that appears
+    /// on demand and one that is on all day. Worth being deliberate about.
+    wake_word: bool,
     /// When the model was last used, for the idle unload. `None` once it is
     /// unloaded, or before it has ever been loaded.
     model_used_ms: Option<u64>,
@@ -165,9 +170,29 @@ impl Session {
         Self {
             phase: Phase::Off,
             timings,
+            wake_word: false,
             model_used_ms: None,
             held: false,
         }
+    }
+
+    /// Say whether a wake word is active. See [`Self::wants_audio`].
+    pub fn listen_for_wake_word(&mut self, active: bool) {
+        self.wake_word = active;
+    }
+
+    pub fn wake_word(&self) -> bool {
+        self.wake_word
+    }
+
+    /// Whether the microphone should be open right now.
+    ///
+    /// The backend keys its capture stream off this after every transition,
+    /// which is what keeps the device and the phase from drifting apart. With
+    /// a wake word it is also true while merely armed — something has to hear
+    /// the word.
+    pub fn wants_audio(&self) -> bool {
+        self.phase.is_listening() || (self.wake_word && self.phase.is_armed())
     }
 
     pub fn phase(&self) -> &Phase {
@@ -418,9 +443,14 @@ impl Session {
         vec![Command::Transcribe]
     }
 
-    /// Stop the microphone if it is open, whatever phase we were in.
+    /// Stop recording if we were, whatever phase we were in.
+    ///
+    /// Note this is about the *recording*, not the device: with a wake word the
+    /// microphone stays open afterwards, because something still has to hear
+    /// the word. The backend reconciles the device against
+    /// [`Self::wants_audio`] once the transition has settled.
     fn abandon(&mut self) -> Vec<Command> {
-        if self.phase.wants_audio() {
+        if self.phase.is_listening() {
             vec![Command::AbandonCapture]
         } else {
             Vec::new()
@@ -733,17 +763,53 @@ mod tests {
     }
 
     #[test]
-    fn the_microphone_is_only_open_while_listening() {
+    fn without_a_wake_word_the_microphone_is_only_open_while_listening() {
         // The property the backend keys its capture stream off, so it is worth
-        // asserting directly rather than through the commands.
+        // asserting directly rather than through the commands. Without a wake
+        // word the device is closed the instant an utterance ends, which is
+        // what makes the operating system's indicator mean something.
         let mut session = session();
-        assert!(!session.phase().wants_audio());
+        assert!(!session.wants_audio());
 
         session.handle(Signal::Wake, 0);
-        assert!(session.phase().wants_audio());
+        assert!(session.wants_audio());
 
         session.handle(Signal::Audio { level: LOUD }, 100);
         silence(&mut session, 100, 1_000);
-        assert!(!session.phase().wants_audio());
+        assert!(!session.wants_audio());
+    }
+
+    #[test]
+    fn with_a_wake_word_the_microphone_stays_open_while_armed() {
+        // Something has to hear the word. This is the trade the wake word
+        // makes, and it is worth stating in a test rather than discovering
+        // from an indicator light that never goes out.
+        let mut session = session();
+        session.listen_for_wake_word(true);
+
+        assert!(session.wants_audio(), "armed, waiting for the word");
+
+        session.handle(Signal::Wake, 0);
+        session.handle(Signal::Audio { level: LOUD }, 100);
+        silence(&mut session, 100, 1_000);
+
+        assert!(matches!(session.phase(), Phase::Transcribing { .. }));
+        // And once the transcript comes back, straight to waiting again.
+        session.handle(Signal::Transcript("open slack".into()), 1_500);
+        assert!(session.phase().is_armed());
+        assert!(session.wants_audio(), "back to waiting for the word");
+    }
+
+    #[test]
+    fn switching_voice_off_closes_the_microphone_even_with_a_wake_word() {
+        // The one case where "armed" must not mean "listening": off is off,
+        // and a device left open after the user switched voice off would be
+        // the worst possible version of this bug.
+        let mut session = session();
+        session.listen_for_wake_word(true);
+        assert!(session.wants_audio());
+
+        session.handle(Signal::Disable, 0);
+        assert!(!session.wants_audio());
     }
 }

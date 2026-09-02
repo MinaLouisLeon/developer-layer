@@ -58,6 +58,10 @@ pub struct VoiceLoop {
     app: AppHandle,
     session: Session,
     ears: Option<dl_voice::Microphone>,
+    /// Present only when the wake word is configured and its runtime is
+    /// installed. `None` means push-to-talk is the way in, which is the
+    /// common case.
+    wake: Option<dl_voice::PorcupineEars>,
     transcriber: Box<dyn Transcriber>,
     speaker: Option<Box<dyn Speaker>>,
     utterance: dl_voice::audio::Utterance,
@@ -100,6 +104,7 @@ impl VoiceLoop {
 
             self.pump_audio();
             self.signal(Signal::Tick);
+            self.reconcile_capture();
             self.publish();
 
             std::thread::sleep(TICK);
@@ -116,20 +121,68 @@ impl VoiceLoop {
     /// session how loud it was.
     fn pump_audio(&mut self) {
         let Some(ears) = &self.ears else { return };
-        if !self.session.phase().wants_audio() {
+        if !self.session.wants_audio() {
             return;
         }
 
-        for frame in ears.drain() {
-            self.utterance.push(&frame.samples);
-            // One signal per frame rather than a summary: the session's
-            // silence rule is written against frames, and collapsing them
-            // would move the cutoff by however long the queue happened to be.
-            let now = self.now_ms();
-            let commands = self
-                .session
-                .handle(Signal::Audio { level: frame.peak }, now);
-            self.apply(commands);
+        let listening = self.session.phase().is_listening();
+        let frames = ears.drain();
+
+        for frame in frames {
+            if listening {
+                self.utterance.push(&frame.samples);
+                // One signal per frame rather than a summary: the session's
+                // silence rule is written against frames, and collapsing them
+                // would move the cutoff by however long the queue happened to
+                // be.
+                let now = self.now_ms();
+                let commands = self
+                    .session
+                    .handle(Signal::Audio { level: frame.peak }, now);
+                self.apply(commands);
+            } else if let Some(wake) = &mut self.wake {
+                match wake.accepts(&frame.samples) {
+                    Ok(true) => {
+                        // Buffered audio goes with the wake, or the tail of
+                        // the word itself sits at the front of the recording.
+                        wake.reset();
+                        let now = self.now_ms();
+                        let commands = self.session.handle(Signal::Wake, now);
+                        self.apply(commands);
+                    }
+                    Ok(false) => {}
+                    Err(e) => {
+                        // A detector that has started failing fails on every
+                        // frame, so it is dropped rather than logged sixty
+                        // times a second. Push-to-talk still works.
+                        tracing::error!(
+                            %e,
+                            "the wake word engine failed; falling back to push-to-talk"
+                        );
+                        self.wake = None;
+                        self.session.listen_for_wake_word(false);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Keep the microphone in step with what the session wants.
+    ///
+    /// Called after every batch of transitions. With a wake word the device
+    /// stays open across an utterance and closes only when voice is switched
+    /// off; without one it closes the moment recording ends, which is what
+    /// makes the operating system's indicator mean something.
+    fn reconcile_capture(&mut self) {
+        let wanted = self.session.wants_audio();
+        let Some(ears) = &mut self.ears else { return };
+
+        if wanted {
+            if let Err(e) = dl_voice::Ears::start(ears) {
+                tracing::error!(%e, "the microphone did not open");
+            }
+        } else {
+            dl_voice::Ears::stop(ears);
         }
     }
 
@@ -145,14 +198,11 @@ impl VoiceLoop {
                         }
                     }
                 }
-                Command::AbandonCapture => {
-                    self.stop_ears();
-                    self.utterance.clear();
-                }
-                Command::Transcribe => {
-                    self.stop_ears();
-                    self.transcribe();
-                }
+                // Only the recording is discarded. Whether the device closes
+                // is `reconcile_capture`'s decision, because with a wake word
+                // it must stay open.
+                Command::AbandonCapture => self.utterance.clear(),
+                Command::Transcribe => self.transcribe(),
                 Command::Say(text) => self.say(&text),
                 Command::Run(invocation) => self.execute(invocation),
                 Command::UnloadModel => self.transcriber.unload(),
@@ -169,15 +219,8 @@ impl VoiceLoop {
         // `dl-atlas` do that.
         for command in commands {
             if let Command::AbandonCapture = command {
-                self.stop_ears();
                 self.utterance.clear();
             }
-        }
-    }
-
-    fn stop_ears(&mut self) {
-        if let Some(ears) = &mut self.ears {
-            dl_voice::Ears::stop(ears);
         }
     }
 
@@ -304,9 +347,22 @@ pub fn channel() -> (Sender<Request>, Receiver<Request>) {
 
 /// What voice can do as configured, without starting anything.
 pub fn capability(config: &dl_core::AtlasConfig) -> dl_atlas::Capability {
+    let runtime = runtime_dir(config);
+
     let assets = dl_atlas::VoiceAssets {
         access_key: config.picovoice_key.clone(),
         keyword: config.wake_word.clone(),
+        // Asked of `dl-voice`, which knows what each platform names the two
+        // files. A second list of names here would be a second one to get
+        // wrong, and getting it wrong reports "not installed" after a download
+        // that plainly worked.
+        runtime_installed: runtime.as_ref().is_some_and(|d| {
+            dl_voice::Runtime {
+                directory: d.clone(),
+            }
+            .is_installed()
+        }),
+        runtime,
         model: config.voice_model.clone(),
     };
 
@@ -316,6 +372,15 @@ pub fn capability(config: &dl_core::AtlasConfig) -> dl_atlas::Capability {
     };
 
     dl_atlas::voice::assets::capability(&assets, engines, &|path| path.is_file())
+}
+
+/// Where Porcupine's runtime lives: configured, or beside the config where the
+/// settings screen installs it.
+pub fn runtime_dir(config: &dl_core::AtlasConfig) -> Option<std::path::PathBuf> {
+    config
+        .picovoice_dir
+        .clone()
+        .or_else(|| dl_config::config_dir().ok().map(|d| d.join("picovoice")))
 }
 
 /// Start the voice thread, if voice is switched on and possible.
@@ -343,11 +408,11 @@ pub fn start(app: AppHandle, config: &dl_core::AtlasConfig, requests: Receiver<R
     let Some(model) = config.voice_model.clone() else {
         return;
     };
-    let speak = config.speak_replies;
+    let config = config.clone();
 
     let spawned = std::thread::Builder::new()
         .name("dl-voice".into())
-        .spawn(move || match build(app, model, speak, requests) {
+        .spawn(move || match build(app, config, model, requests) {
             Ok(voice) => voice.run(),
             Err(e) => tracing::error!(%e, "the voice thread could not start"),
         });
@@ -360,12 +425,19 @@ pub fn start(app: AppHandle, config: &dl_core::AtlasConfig, requests: Receiver<R
 #[cfg(windows)]
 fn build(
     app: AppHandle,
+    config: dl_core::AtlasConfig,
     model: std::path::PathBuf,
-    speak: bool,
     requests: Receiver<Request>,
 ) -> Result<VoiceLoop, dl_voice::VoiceError> {
     let mut session = Session::new(Timings::default());
     session.handle(Signal::Enable, 0);
+
+    // Never fatal. A wake word that will not start leaves push-to-talk, which
+    // is the whole point of it being one way in rather than the way in.
+    let wake = wake_engine(&config);
+    session.listen_for_wake_word(wake.is_some());
+
+    let speak = config.speak_replies;
 
     let speaker: Option<Box<dyn Speaker>> = if speak {
         match dl_voice::WinRtVoice::new() {
@@ -383,6 +455,7 @@ fn build(
     Ok(VoiceLoop {
         app,
         session,
+        wake,
         ears: Some(dl_voice::Microphone::open()?),
         transcriber: Box::new(dl_voice::Whisper::new(model)?),
         speaker,
@@ -395,11 +468,36 @@ fn build(
     })
 }
 
+/// Build the wake-word detector, or explain in the log why there is none.
+#[cfg(windows)]
+fn wake_engine(config: &dl_core::AtlasConfig) -> Option<dl_voice::PorcupineEars> {
+    let key = config.picovoice_key.as_deref()?.trim();
+    let keyword = config.wake_word.as_ref()?;
+    if key.is_empty() {
+        return None;
+    }
+
+    let runtime = dl_voice::Runtime {
+        directory: runtime_dir(config)?,
+    };
+
+    match dl_voice::PorcupineEars::new(&runtime, key, keyword) {
+        Ok(engine) => {
+            tracing::info!(keyword = ?keyword, "listening for the wake word");
+            Some(engine)
+        }
+        Err(e) => {
+            tracing::warn!(%e, "the wake word is unavailable; push-to-talk still works");
+            None
+        }
+    }
+}
+
 #[cfg(not(windows))]
 fn build(
     _app: AppHandle,
+    _config: dl_core::AtlasConfig,
     _model: std::path::PathBuf,
-    _speak: bool,
     _requests: Receiver<Request>,
 ) -> Result<VoiceLoop, dl_voice::VoiceError> {
     Err(dl_voice::VoiceError::Unsupported(

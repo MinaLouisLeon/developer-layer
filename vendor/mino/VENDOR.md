@@ -95,6 +95,7 @@ two together.**
 | `ui/src/features/file-tree/components/FileTreePane.tsx` | Renders the menu and its status | Same |
 | `test/mino-workbench/integration/archive-menu.test.tsx` | **Added** | Developer Layer's tests for the above |
 | `test/mino-workbench/integration/github-create-pr.test.tsx` | One `expect` wrapped in `waitFor` | The dialog opens before the checked-out branch arrives and renders "this branch" until it does. Upstream's pinned tree won that race; ours does not. The behaviour is right either way, and the assertions around it already wait |
+| `test/timeouts.ts` | **Added**, loaded after upstream's `setup.ts` | Testing Library gives every `findBy*` one second. That is ample locally and too tight on a CI runner already running forty-nine files in parallel — the suite went green here three times and then failed once on GitHub, on a correct assertion that had simply not happened yet. Raising the ceiling weakens nothing: a `findBy*` returns the moment its element appears |
 
 ### The archive actions
 

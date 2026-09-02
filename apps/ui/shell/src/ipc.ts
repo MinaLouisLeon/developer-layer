@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import type {
+  Capability,
   Config,
   DockAction,
   DockEntry,
@@ -166,4 +167,41 @@ export function windowThumbnail(window: number): Promise<string | null> {
  */
 export function setTaskbarReplacement(enabled: boolean): Promise<void> {
   return invoke<void>("set_taskbar_replacement", { enabled });
+}
+
+/** One thing voice can install, as the settings screen lists it. */
+export interface Installable {
+  id: string;
+  label: string;
+  summary: string;
+  megabytes: number | null;
+  installed: boolean;
+}
+
+/** Progress of one download. `done` is set once, at the end. */
+export interface InstallProgress {
+  id: string;
+  percent: number | null;
+  megabytes: number;
+  done: boolean | null;
+  error: string | null;
+}
+
+export function installable(): Promise<Installable[]> {
+  return invoke<Installable[]>("atlas_installable");
+}
+
+/** Starts the download and returns; watch `onInstall` for what happens. */
+export function install(id: string): Promise<void> {
+  return invoke<void>("atlas_install", { id });
+}
+
+export function onInstall(
+  handler: (progress: InstallProgress) => void,
+): Promise<() => void> {
+  return listen<InstallProgress>("atlas:install", (event) => handler(event.payload));
+}
+
+export function voiceCapability(): Promise<Capability> {
+  return invoke<Capability>("atlas_voice_capability");
 }

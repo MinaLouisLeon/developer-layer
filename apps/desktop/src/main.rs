@@ -4,6 +4,7 @@
 mod archive;
 mod atlas;
 mod commands;
+mod install;
 mod mino;
 mod platform;
 mod voice;
@@ -149,6 +150,8 @@ fn main() {
             atlas::atlas_toggle,
             atlas::atlas_voice,
             atlas::atlas_voice_capability,
+            install::atlas_installable,
+            install::atlas_install,
             // The vendored workbench's forty, under upstream's own names. See
             // `mino.rs` for why they are not prefixed.
             mino::commands::connection::connect,

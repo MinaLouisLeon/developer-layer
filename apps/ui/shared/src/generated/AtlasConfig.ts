@@ -22,13 +22,19 @@ voiceModel: string | null,
  */
 speakReplies: boolean, 
 /**
- * Picovoice access key, for a wake word this build does not yet have.
+ * Picovoice access key. Free, but personal, so it is never committed.
  */
 picovoiceKey: string | null, 
 /**
- * The trained "Atlas" keyword, likewise.
+ * The trained "Atlas" keyword file. Only a handful of words ship built in
+ * and ours is not among them, so this one is made on Picovoice's console.
  */
 wakeWord: string | null, 
+/**
+ * Where Porcupine's library and parameters live. Defaults to a directory
+ * beside the config, which is where the settings screen installs them.
+ */
+picovoiceDir: string | null, 
 /**
  * OpenAI-compatible endpoint exposed by LM Studio.
  */

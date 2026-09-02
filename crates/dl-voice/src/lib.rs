@@ -12,24 +12,29 @@
 //! [`audio`] is the exception to the gating: the conversion rules are the part
 //! most likely to be silently wrong, so they build and run everywhere.
 //!
-//! ## No wake word, yet
+//! ## The wake word
 //!
-//! [`WAKE_WORD`] is `false` and there is no engine behind it. The plan named
-//! Picovoice's Porcupine, and it cannot be taken as a dependency as things
-//! stand: it is not on crates.io — the `porcupine` crate there is an unrelated
-//! Win32 wrapper — so it means a git dependency plus their native library,
-//! which is neither MIT nor something to bundle without deciding to.
+//! [`wake`] binds Picovoice's Porcupine directly rather than using their Rust
+//! crate, which is not on crates.io and does not build as a git dependency —
+//! see that module. Binding the C API means the engine is loaded at runtime,
+//! so nothing of Picovoice's is committed here and the licence of their
+//! binaries never touches this repository. The user's copy lives in their
+//! config directory.
 //!
-//! Nothing is designed around its absence. [`dl_atlas::voice::Trigger`] still
-//! has its variant, the capability model still reports what a wake word would
-//! need, and push-to-talk — which needs no account and no third-party binary —
-//! is what starts an utterance today. Adding the engine later is implementing
-//! [`Ears::wake_word_active`] rather than reshaping anything.
+//! It is still optional. Push-to-talk needs no account and no third-party
+//! binary, so voice works fully without any of it, and the capability model
+//! reports the wake word as one thing among several rather than as the way in.
 
-/// Whether this build can listen for a wake word. See the module docs.
-pub const WAKE_WORD: bool = false;
+/// Whether this build contains a wake-word engine.
+///
+/// Distinct from whether one is *usable*: that also needs an access key, a
+/// keyword file and the runtime on disk, which is
+/// [`dl_atlas::voice::assets::capability`]'s question.
+pub const WAKE_WORD: bool = true;
 
 pub mod audio;
+pub mod install;
+pub mod wake;
 
 #[cfg(windows)]
 mod capture;
@@ -44,6 +49,7 @@ pub use capture::Microphone;
 pub use stt::Whisper;
 #[cfg(windows)]
 pub use tts::WinRtVoice;
+pub use wake::{PorcupineEars, Runtime};
 
 #[derive(Debug, thiserror::Error)]
 pub enum VoiceError {
@@ -59,26 +65,24 @@ pub enum VoiceError {
     Speak(String),
     #[error("{0} is missing")]
     MissingAsset(String),
+    #[error("{0}")]
+    Install(String),
     #[error("not supported on this platform: {0}")]
     Unsupported(&'static str),
 }
 
 pub type Result<T> = std::result::Result<T, VoiceError>;
 
-/// Listening: the microphone, and the wake word if one is configured.
+/// The microphone.
 ///
-/// Implementations push mono 16 kHz frames to the callback given at
-/// construction, and report a wake separately — the session in `dl-atlas`
-/// treats those as two different signals and must not have to infer one from
-/// the other.
+/// Capture only. Whether the frames it produces are being examined for a wake
+/// word is [`wake::PorcupineEars`]'s business, and keeping the two apart is
+/// what lets the same stream feed both the detector and the recording.
 pub trait Ears: Send {
     /// Begin delivering frames. Idempotent.
     fn start(&mut self) -> Result<()>;
     /// Stop delivering frames. Idempotent, and safe to call when never started.
     fn stop(&mut self);
-    /// Whether a wake word is actually being listened for, as opposed to
-    /// push-to-talk being the only way in.
-    fn wake_word_active(&self) -> bool;
 }
 
 /// Turning captured audio into text.
@@ -111,9 +115,6 @@ impl Ears for NullVoice {
         Err(VoiceError::Unsupported("listening is Windows-only for now"))
     }
     fn stop(&mut self) {}
-    fn wake_word_active(&self) -> bool {
-        false
-    }
 }
 
 impl Transcriber for NullVoice {

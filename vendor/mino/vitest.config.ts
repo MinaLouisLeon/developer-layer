@@ -12,8 +12,9 @@ import { defineConfig } from "vitest/config";
 // resync. Developer Layer's own archive tests sit alongside it in
 // `test/mino-workbench/integration/archive-menu.test.tsx`.
 //
-// Only two lines differ from upstream's config: the paths, which point at
-// `vendor/mino/ui` rather than `apps/ui`. Playwright's `*.spec.ts` end-to-end
+// Three things differ from upstream's config: the paths, which point at
+// `vendor/mino/ui` rather than `apps/ui`, and the extra setup file that raises
+// Testing Library's async timeout for CI. Playwright's `*.spec.ts` end-to-end
 // tests are not vendored — they drive a real Tauri window.
 export default defineConfig({
   plugins: [react()],
@@ -25,7 +26,8 @@ export default defineConfig({
   test: {
     globals: false,
     environment: "jsdom",
-    setupFiles: ["./test/setup.ts"],
+    // Upstream's setup, then ours. See test/timeouts.ts.
+    setupFiles: ["./test/setup.ts", "./test/timeouts.ts"],
     include: ["test/**/*.test.{ts,tsx}"],
     exclude: ["**/node_modules/**", "**/dist/**"],
   },

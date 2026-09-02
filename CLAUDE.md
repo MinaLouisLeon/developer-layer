@@ -135,13 +135,25 @@ raise it explicitly rather than quietly building something else.
   `apps/desktop::atlas::run_key`. A second path would be a second place for the
   two to disagree about what an invocation key means, and the spoken one is the
   half nobody is watching.
-- **There is no wake word engine.** `dl_voice::WAKE_WORD` is `false`;
-  push-to-talk is what starts an utterance. Picovoice's Porcupine is not on
-  crates.io — the `porcupine` crate there is an unrelated Win32 wrapper — so it
-  means a git dependency plus their native library, which is neither MIT nor
-  something to bundle without deciding to. The capability model already reports
-  it as absent and `Trigger::WakeWord` already exists, so adding one later is
-  an implementation rather than a reshaping.
+- **Porcupine is bound by hand, and loaded at runtime.** Picovoice's Rust crate
+  is not on crates.io (the `porcupine` crate there is an unrelated Win32
+  wrapper) and does **not** build as a git dependency: its `build.rs` copies a
+  `data/` directory that only exists after their publish script runs, so a
+  checkout panics before compiling. `dl-voice::wake` binds the six C functions
+  through `libloading` instead — which also means no build-time dependency, no
+  Picovoice binary committed here, and nothing about their licence touching
+  this repository. Their runtime is downloaded into the user's config
+  directory.
+- **A wake word keeps the microphone open while merely armed.** Something has
+  to hear the word, so `Session::wants_audio` is true in `Armed` too, and the
+  operating system's in-use indicator stays lit all day rather than appearing
+  on demand. That is the trade the wake word makes, it is stated in a test, and
+  switching voice off must still close the device.
+- **An asset's `file` must match whatever loads it.** `install::destination`
+  and `wake::Runtime` name the same two files, and a mismatch reports the wake
+  word as uninstalled forever after a download that plainly worked — which is
+  why the library's name is per-platform in both places and a test pins them
+  together.
 
 ## Known Win32 traps
 
