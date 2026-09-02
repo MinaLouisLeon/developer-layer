@@ -130,6 +130,13 @@ jobs:
         with:
           files: dist/*
           tag_name: ${{ steps.plan.outputs.tag }}
+          # Pinned to the commit this run built. Unset, GitHub creates the
+          # tag on the default branch instead — which is the same commit
+          # today and will not be the moment `beta` carries anything the
+          # default branch does not. A tag pointing somewhere other than the
+          # code in the attached installer is the one thing that would make
+          # rolling back to an earlier beta meaningless.
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.plan.outputs.name }}
           draft: ${{ steps.plan.outputs.tag == '' }}
           prerelease: true
