@@ -6,6 +6,7 @@ mod atlas;
 mod commands;
 mod mino;
 mod platform;
+mod voice;
 
 /// Window labels, as `tauri.conf.json` declares them.
 const SHELL_WINDOW: &str = "shell";
@@ -54,6 +55,7 @@ fn main() {
     let hotkeys = match dl_atlas::hotkey::parse_all(
         &config.atlas.command_bar_hotkey,
         &config.general.panic_restore_hotkey,
+        &config.atlas.push_to_talk_hotkey,
     ) {
         Ok(hotkeys) => hotkeys,
         Err(e) => {
@@ -66,7 +68,14 @@ fn main() {
         }
     };
 
+    // Cloned before the engine takes ownership of the config.
+    let atlas_config = config.atlas.clone();
     let recents = atlas::load_recents();
+    // Made before the builder: the state needs the sending half and the thread
+    // needs an AppHandle that does not exist yet.
+    let (voice_tx, voice_rx) = voice::channel();
+    let voice_capability =
+        std::sync::Arc::new(std::sync::Mutex::new(voice::capability(&config.atlas)));
     let metrics = dl_metrics::shared(&config.telemetry);
     let engine = dl_engine::Engine::new(shell, config);
     tracing::info!(
@@ -88,13 +97,25 @@ fn main() {
         .setup({
             let metrics = metrics.clone();
             let hotkeys = hotkeys.clone();
+            let atlas_config = atlas_config.clone();
+            let voice_rx = std::cell::Cell::new(Some(voice_rx));
             move |app| {
                 spawn_sampler(app.handle().clone(), metrics);
                 register_hotkeys(app.handle(), &hotkeys);
+                if let Some(rx) = voice_rx.take() {
+                    voice::start(app.handle().clone(), &atlas_config, rx);
+                }
                 Ok(())
             }
         })
-        .manage(commands::AppState::new(engine, metrics, apps, recents))
+        .manage(commands::AppState::new(
+            engine,
+            metrics,
+            apps,
+            recents,
+            voice_tx,
+            voice_capability,
+        ))
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::list_monitors,
@@ -126,6 +147,8 @@ fn main() {
             atlas::atlas_search,
             atlas::atlas_run,
             atlas::atlas_toggle,
+            atlas::atlas_voice,
+            atlas::atlas_voice_capability,
             // The vendored workbench's forty, under upstream's own names. See
             // `mino.rs` for why they are not prefixed.
             mino::commands::connection::connect,
@@ -170,6 +193,17 @@ fn main() {
             mino::commands::shell::probe_shell,
         ])
         .on_window_event(|window, event| {
+            // The shell window going away means the process is going away.
+            // Telling the voice thread lets it close the microphone through
+            // the same path as any other disable, rather than having the
+            // device released only when the process image is torn down.
+            if window.label() == SHELL_WINDOW && matches!(event, tauri::WindowEvent::Destroyed) {
+                use tauri::Manager;
+                if let Some(state) = window.try_state::<commands::AppState>() {
+                    let _ = state.voice().send(voice::Request::Shutdown);
+                }
+            }
+
             // Closing the workbench must not leave a shell running behind it.
             // The registry also kills sessions on drop; this makes it
             // immediate, and it is scoped to that window so closing the
@@ -197,21 +231,46 @@ fn main() {
 /// other should still work, and the taskbar restore hotkey is the one that
 /// matters most.
 /// One accelerator, what to call it in a log line, and what it does.
-type Binding = (String, &'static str, fn(&tauri::AppHandle));
+///
+/// The handler takes whether the key went *down* rather than being called only
+/// on the press, because push-to-talk needs both edges: down opens the
+/// microphone and up closes it. The two that are merely pressed ignore the
+/// release themselves.
+type Binding = (String, &'static str, fn(&tauri::AppHandle, bool));
+
+/// The command bar toggles on the press only. Acting on both edges would open
+/// it and shut it again in one keystroke.
+fn command_bar_key(app: &tauri::AppHandle, pressed: bool) {
+    if pressed {
+        atlas::toggle(app);
+    }
+}
+
+/// Likewise, or one keystroke would restore the taskbar twice.
+fn restore_taskbar_key(app: &tauri::AppHandle, pressed: bool) {
+    if pressed {
+        restore_taskbar(app);
+    }
+}
 
 fn register_hotkeys(app: &tauri::AppHandle, hotkeys: &dl_atlas::Hotkeys) {
     use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
-    let bindings: [Binding; 2] = [
+    let bindings: [Binding; 3] = [
         (
             hotkeys.command_bar.accelerator(),
             "command bar",
-            atlas::toggle,
+            command_bar_key,
         ),
         (
             hotkeys.restore_taskbar.accelerator(),
             "taskbar restore",
-            restore_taskbar,
+            restore_taskbar_key,
+        ),
+        (
+            hotkeys.push_to_talk.accelerator(),
+            "push-to-talk",
+            voice_key,
         ),
     ];
 
@@ -219,12 +278,7 @@ fn register_hotkeys(app: &tauri::AppHandle, hotkeys: &dl_atlas::Hotkeys) {
         let registered = app.global_shortcut().on_shortcut(
             accelerator.as_str(),
             move |app, _shortcut, event| {
-                // Both edges arrive. Acting on the press alone stops a
-                // held key repeating the action, and stops the release
-                // toggling the bar straight back shut.
-                if event.state() == ShortcutState::Pressed {
-                    action(app);
-                }
+                action(app, event.state() == ShortcutState::Pressed);
             },
         );
 
@@ -236,6 +290,27 @@ fn register_hotkeys(app: &tauri::AppHandle, hotkeys: &dl_atlas::Hotkeys) {
             ),
         }
     }
+}
+
+/// Push-to-talk, both edges.
+///
+/// A held key rather than a press: the user says when they are done by letting
+/// go, which is more certain than any silence heuristic and is what makes
+/// voice usable in a room with other people in it.
+fn voice_key(app: &tauri::AppHandle, pressed: bool) {
+    use tauri::Manager;
+
+    let Some(state) = app.try_state::<commands::AppState>() else {
+        return;
+    };
+    let request = if pressed {
+        voice::Request::Press
+    } else {
+        voice::Request::Release
+    };
+    // A closed channel means voice never started, which is the normal state on
+    // a machine with no model configured. Not worth a line per keystroke.
+    let _ = state.voice().send(request);
 }
 
 /// Put the native taskbar back, from the hotkey.
@@ -322,12 +397,14 @@ mod tests {
         let hotkeys = dl_atlas::hotkey::parse_all(
             &config.atlas.command_bar_hotkey,
             &config.general.panic_restore_hotkey,
+            &config.atlas.push_to_talk_hotkey,
         )
         .expect("the shipped defaults are valid");
 
         for accelerator in [
             hotkeys.command_bar.accelerator(),
             hotkeys.restore_taskbar.accelerator(),
+            hotkeys.push_to_talk.accelerator(),
         ] {
             accelerator
                 .parse::<Shortcut>()

@@ -37,8 +37,14 @@ jobs:
       # the resource compiler tauri-build needs; without it apps/desktop is
       # invisible until a Windows runner picks it up, which is exactly how a
       # broken import reached CI once already.
+      # g++ as well as gcc: whisper-rs builds whisper.cpp, which is C++, and
+      # without it the voice crate is the one part of the workspace this job
+      # cannot see — exactly the gap that let a broken apps/desktop import
+      # through once already.
       - name: Windows build deps
-        run: sudo apt-get update && sudo apt-get install -y binutils-mingw-w64-x86-64 gcc-mingw-w64-x86-64
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils-mingw-w64-x86-64 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
 
       - name: Type-check the whole workspace for Windows
         run: |

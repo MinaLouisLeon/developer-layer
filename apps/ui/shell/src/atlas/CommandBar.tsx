@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AtlasHit } from "@developer-layer/shared";
 
-import { onOpened, run, search, setVisible } from "./ipc";
+import { onOpened, run, search, setVisible, voice } from "./ipc";
+import { Voice } from "./Voice";
 
 /**
  * The Atlas command bar.
@@ -30,6 +31,10 @@ export function CommandBar() {
   const latest = useRef(0);
 
   const dismiss = useCallback(() => {
+    // Tells the voice session too. Dismissing the bar with the microphone
+    // still open would leave it recording something the user believes they
+    // stopped.
+    void voice("cancel").catch(() => {});
     void setVisible(false);
   }, []);
 
@@ -200,6 +205,8 @@ export function CommandBar() {
             ))}
           </ul>
         )}
+
+        <Voice />
 
         <footer className="atlas__hint" aria-hidden="true">
           <span>↑↓ move</span>

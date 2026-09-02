@@ -117,6 +117,32 @@ raise it explicitly rather than quietly building something else.
   command. A corrupt recents file is ignored, which is the opposite of the rule
   the config lives under — and right, because it holds no work the user did.
 
+- **Voice must always be able to decline.** A keyboard shows a list and waits
+  for Enter; a microphone gets one pass at a phrase and then acts. So
+  `dl-atlas::voice::resolve` has a score floor (a phrase that was not a command
+  is refused), an ambiguity margin (two close readings ask rather than guess),
+  and confirmation from the registry's `Risk` regardless of confidence — a
+  confident mishearing is still a mishearing.
+- **A confirmation that times out means no.** The only action that asks is the
+  one that cannot be undone by doing it again, so treating silence as consent
+  would be exactly backwards.
+- **Downsampling low-passes first.** Everything above the new 8 kHz Nyquist
+  folds back into the speech band as tones nobody said. The obvious cheap
+  filter is not enough to claim this: from 44.1 kHz the decimation span is
+  under three samples, and a three-tap average still passes 9 kHz at 80%.
+  `dl-voice::audio` uses a windowed-sinc, and a test asserts the stopband.
+- **Typed and spoken commands go through one dispatcher**,
+  `apps/desktop::atlas::run_key`. A second path would be a second place for the
+  two to disagree about what an invocation key means, and the spoken one is the
+  half nobody is watching.
+- **There is no wake word engine.** `dl_voice::WAKE_WORD` is `false`;
+  push-to-talk is what starts an utterance. Picovoice's Porcupine is not on
+  crates.io — the `porcupine` crate there is an unrelated Win32 wrapper — so it
+  means a git dependency plus their native library, which is neither MIT nor
+  something to bundle without deciding to. The capability model already reports
+  it as absent and `Trigger::WakeWord` already exists, so adding one later is
+  an implementation rather than a reshaping.
+
 ## Known Win32 traps
 
 These are documented because each one silently produces a broken-looking result

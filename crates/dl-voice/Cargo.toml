@@ -1,0 +1,31 @@
+[package]
+name = "dl-voice"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Microphone capture, wake word, transcription and speech for Atlas."
+
+[dependencies]
+dl-atlas = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+# The engines are Windows-only, exactly as the Win32 platform layer is: speech
+# synthesis has no equivalent here, and gating them keeps `audio` — which
+# carries the conversion rules worth testing — building and running on Linux
+# CI. macOS gets its own arm in phase 10.
+#
+# There is deliberately no wake-word engine here. See `WAKE_WORD` in
+# `src/lib.rs`.
+[target.'cfg(windows)'.dependencies]
+cpal = "0.15"
+whisper-rs = "0.14"
+windows = { version = "0.62", features = [
+    "Media_SpeechSynthesis",
+    "Media_Playback",
+    "Media_Core",
+    "Foundation",
+    "Storage_Streams",
+] }

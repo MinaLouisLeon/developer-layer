@@ -22,6 +22,7 @@ pub mod plan;
 pub mod recents;
 pub mod search;
 pub mod view;
+pub mod voice;
 
 pub use action::{Action, ActionId, Category, Param, ParamKind, ACTIONS};
 pub use hotkey::{Hotkey, Hotkeys};
@@ -31,6 +32,7 @@ pub use plan::{Effect, Surface};
 pub use recents::Recents;
 pub use search::Hit;
 pub use view::AtlasHit;
+pub use voice::{Capability, Resolution, Trigger, VoiceAssets};
 
 use dl_core::WindowId;
 

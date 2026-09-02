@@ -40,12 +40,23 @@ pub fn atlas_search(
 
 /// Run the row `key` names.
 #[tauri::command]
-pub fn atlas_run(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-    key: String,
-) -> Result<(), String> {
-    let invocation = Invocation::parse(&key).map_err(|e| e.to_string())?;
+pub fn atlas_run(app: tauri::AppHandle, key: String) -> Result<(), String> {
+    run_key(&app, &key)
+}
+
+/// Run an invocation key, whatever produced it.
+///
+/// The command bar calls this with a row the user chose; the voice thread
+/// calls it with a phrase `dl-atlas` resolved from what was said. Both go
+/// through one path on purpose — a second dispatcher would be a second place
+/// for the two to disagree about what a key means, and the spoken one is the
+/// half nobody is watching.
+pub fn run_key(app: &tauri::AppHandle, key: &str) -> Result<(), String> {
+    let state = app
+        .try_state::<AppState>()
+        .ok_or("the shell is not ready yet")?;
+
+    let invocation = Invocation::parse(key).map_err(|e| e.to_string())?;
 
     let effect = {
         let engine = state.engine().lock().map_err(|e| e.to_string())?;
@@ -61,9 +72,9 @@ pub fn atlas_run(
 
     // Recorded before the effect runs, not after: `Effect::Quit` never
     // returns, and quitting is worth remembering having done.
-    remember(&state, &key);
+    remember(&state, key);
 
-    apply(&app, &state, effect)
+    apply(app, &state, effect)
 }
 
 /// Show or hide the command bar. Called by the hotkey and by the bar itself
@@ -215,4 +226,46 @@ pub fn load_recents() -> Recents {
         .filter(|key| Invocation::parse(key).is_ok())
         .collect();
     Recents::new(stored)
+}
+
+/// What voice can do as configured, for the settings screen and the overlay.
+#[tauri::command]
+pub fn atlas_voice_capability(
+    state: tauri::State<'_, AppState>,
+) -> Result<dl_atlas::Capability, String> {
+    state
+        .voice_capability()
+        .lock()
+        .map(|c| c.clone())
+        .map_err(|e| e.to_string())
+}
+
+/// Push-to-talk, and the answers to a spoken confirmation.
+///
+/// One command rather than four, because they are one conversation and the UI
+/// should not be able to get them out of order by calling the wrong one.
+#[tauri::command]
+pub fn atlas_voice(state: tauri::State<'_, AppState>, action: String) -> Result<(), String> {
+    use crate::voice::Request;
+
+    let request = match action.as_str() {
+        "press" => Request::Press,
+        "release" => Request::Release,
+        "cancel" => Request::Cancel,
+        "yes" => Request::Answer(true),
+        "no" => Request::Answer(false),
+        "enable" => Request::Enabled(true),
+        // Switching off closes the microphone and drops the model through the
+        // session's own disable path, rather than by leaving a thread running
+        // that quietly ignores everything.
+        "disable" => Request::Enabled(false),
+        other => return Err(format!("`{other}` is not a voice action")),
+    };
+
+    state
+        .voice()
+        .send(request)
+        // The thread is gone, which means voice was never started or has
+        // stopped. Saying so beats a button that silently does nothing.
+        .map_err(|_| "voice is not running".to_string())
 }

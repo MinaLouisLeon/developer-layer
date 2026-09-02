@@ -4,9 +4,24 @@ A Windows 11 shell replacement built around a strict no-overlap grid. Every
 application and the telemetry panel tile into assigned slots across two or three
 displays, with an embedded Nushell workbench and a voice assistant called Atlas.
 
-**Status:** phase 07. The slot engine, telemetry, dock, taskbar replacement and
-the embedded workbench and the Atlas command bar are in; voice, the LM
-Studio agent and macOS remain.
+**Status:** phase 08. The slot engine, telemetry, dock, taskbar replacement and
+the embedded workbench, the Atlas command bar and voice are in; the LM Studio
+agent and macOS remain.
+
+## Voice
+
+Hold the push-to-talk key and say what you want. What was heard is matched
+against the same action registry the command bar uses, and Atlas will decline:
+a phrase that matches nothing is refused rather than run, two close readings
+ask which, and quitting asks regardless of how confident the match was.
+
+Transcription is Whisper, loaded on the first utterance and dropped again once
+it has been idle, so a couple of hundred megabytes is not held all day for a
+feature used a few times an hour. Point `atlas.voiceModel` at a model file and
+set `atlas.voiceEnabled`; nothing else is required, and no account is.
+
+Saying "Atlas" to wake it is not wired up — see `dl-voice`'s module
+documentation for why, and for what it would take.
 
 ## The workbench
 
@@ -44,6 +59,7 @@ crates/
   dl-apps          application resolution, icons and launching
   dl-atlas         command registry and ranking; wake word and speech, 08-09
   dl-archive       WinRAR console tools — no GUI is ever launched
+  dl-voice         microphone, transcription and speech
 apps/
   desktop          Tauri app: command dispatch and window lifecycle
   ui/shared        generated TypeScript domain types
@@ -104,7 +120,7 @@ which is the first real check for anything touching Win32.
 | 05 | Taskbar replacement and its guardian process ✅ |
 | 06 | mino-workbench embed and archive actions ✅ |
 | 07 | Atlas command bar ✅ |
-| 08 | Atlas voice |
+| 08 | Atlas voice ✅ |
 | 09 | LM Studio agent |
 | 10 | Title-bar theming and macOS |
 

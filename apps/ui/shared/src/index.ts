@@ -38,3 +38,6 @@ export type { ArchiveOutcome } from "./generated/ArchiveOutcome";
 export type { Overwrite } from "./generated/Overwrite";
 export type { Compression } from "./generated/Compression";
 export type { AtlasHit } from "./generated/AtlasHit";
+export type { Capability } from "./generated/Capability";
+export type { Missing } from "./generated/Missing";
+export type { Trigger } from "./generated/Trigger";

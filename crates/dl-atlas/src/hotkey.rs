@@ -129,32 +129,52 @@ fn canonical_key(key: &str) -> String {
     }
 }
 
-/// Both of Developer Layer's hotkeys, checked together.
+/// Every hotkey Developer Layer registers, checked together.
 ///
-/// Checked together because the interesting failure is the pair: two hotkeys
-/// on the same combination register in order and the second silently loses,
-/// so whichever the user needs more is the one that stops working — and the
-/// taskbar restore hotkey is the one that must never be the loser, since it is
-/// one of the four routes back from a hidden shell.
+/// Together because the interesting failure is the set: two hotkeys on one
+/// combination register in order and the second silently loses, so whichever
+/// the user needs more is the one that stops working — and the taskbar restore
+/// hotkey must never be the loser, since it is one of the four routes back
+/// from a hidden shell.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hotkeys {
     pub command_bar: Hotkey,
     pub restore_taskbar: Hotkey,
+    /// Held to speak, rather than pressed. That changes what makes a *good*
+    /// binding — see [`parse_all`] — but not what makes a valid one.
+    pub push_to_talk: Hotkey,
 }
 
-pub fn parse_all(command_bar: &str, restore_taskbar: &str) -> Result<Hotkeys, AtlasError> {
+pub fn parse_all(
+    command_bar: &str,
+    restore_taskbar: &str,
+    push_to_talk: &str,
+) -> Result<Hotkeys, AtlasError> {
     let command_bar = parse(command_bar)?;
     let restore_taskbar = parse(restore_taskbar)?;
+    let push_to_talk = parse(push_to_talk)?;
 
-    if command_bar == restore_taskbar {
-        return Err(AtlasError::HotkeyCollision {
-            hotkey: command_bar.to_string(),
-        });
+    // Pairwise rather than by sorting: three is few enough that the loop is
+    // the clearer statement, and it stays correct when a fourth is added.
+    let all = [
+        (&command_bar, "the command bar"),
+        (&restore_taskbar, "the taskbar restore"),
+        (&push_to_talk, "push-to-talk"),
+    ];
+    for (i, (a, _)) in all.iter().enumerate() {
+        for (b, _) in all.iter().skip(i + 1) {
+            if a == b {
+                return Err(AtlasError::HotkeyCollision {
+                    hotkey: a.to_string(),
+                });
+            }
+        }
     }
 
     Ok(Hotkeys {
         command_bar,
         restore_taskbar,
+        push_to_talk,
     })
 }
 
@@ -228,9 +248,18 @@ mod tests {
     fn the_defaults_that_ship_in_the_config_are_valid() {
         // The one test that would have caught shipping a default nothing can
         // register.
-        let hotkeys = parse_all("Alt+Space", "Ctrl+Alt+Shift+T").expect("defaults");
+        let config = dl_core::AtlasConfig::default();
+        let general = dl_core::GeneralConfig::default();
+        let hotkeys = parse_all(
+            &config.command_bar_hotkey,
+            &general.panic_restore_hotkey,
+            &config.push_to_talk_hotkey,
+        )
+        .expect("the shipped defaults are valid and do not collide");
+
         assert_eq!(hotkeys.command_bar.accelerator(), "Alt+Space");
         assert_eq!(hotkeys.restore_taskbar.accelerator(), "Ctrl+Alt+Shift+T");
+        assert_eq!(hotkeys.push_to_talk.accelerator(), "Ctrl+Alt+A");
     }
 
     #[test]
@@ -238,7 +267,16 @@ mod tests {
         // The second registration silently loses, and the taskbar restore
         // hotkey must never be the one that loses — it is a route back from a
         // hidden shell.
-        let err = parse_all("Ctrl+Alt+T", "alt+ctrl+t").expect_err("collision");
+        let err = parse_all("Ctrl+Alt+T", "alt+ctrl+t", "Ctrl+Alt+A").expect_err("collision");
+        assert!(matches!(err, AtlasError::HotkeyCollision { .. }), "{err:?}");
+    }
+
+    #[test]
+    fn a_collision_is_caught_between_any_two_of_them_not_just_the_first_pair() {
+        // Checking only the first pair would let push-to-talk quietly take the
+        // taskbar restore hotkey, which is the one that must always work.
+        let err =
+            parse_all("Alt+Space", "Ctrl+Alt+Shift+T", "ctrl+alt+shift+t").expect_err("collision");
         assert!(matches!(err, AtlasError::HotkeyCollision { .. }), "{err:?}");
     }
 

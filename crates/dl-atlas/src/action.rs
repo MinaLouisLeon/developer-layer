@@ -87,6 +87,24 @@ impl Category {
     }
 }
 
+/// Whether an action needs an explicit yes before it runs.
+///
+/// The distinction is about how the invocation was *arrived at*, not only what
+/// it does. Choosing a row in the command bar is already an explicit yes — the
+/// user read the label and pressed Enter. Voice and, in phase 09, a model both
+/// **infer** an invocation from a phrase, and an inference can be wrong in a
+/// way a click cannot. So a risky action asks once when it was inferred, and
+/// runs straight away when it was chosen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Risk {
+    /// Reversible, or cheap enough that asking would be noise.
+    Safe,
+    /// Ask first when inferred. Reserved for what cannot be undone by doing it
+    /// again — not merely for what is significant.
+    Confirm,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Action {
     pub id: ActionId,
@@ -98,6 +116,8 @@ pub struct Action {
     /// it says what the action does rather than restating its name.
     pub summary: &'static str,
     pub category: Category,
+    /// Whether an inferred invocation of this action asks first.
+    pub risk: Risk,
     /// At most one, in this phase. See `palette::expand`.
     pub params: &'static [Param],
     /// Extra words a query may match. Terms a user would plausibly type that
@@ -109,6 +129,10 @@ pub struct Action {
 impl Action {
     pub fn param(&self) -> Option<&Param> {
         self.params.first()
+    }
+
+    pub fn needs_confirmation(&self) -> bool {
+        self.risk == Risk::Confirm
     }
 }
 
@@ -133,6 +157,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Open application",
         summary: "Open an application, or bring it to the front if it is already running.",
         category: Category::Application,
+        risk: Risk::Safe,
         params: &[Param {
             name: "app",
             kind: ParamKind::App,
@@ -148,6 +173,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Focus window",
         summary: "Bring one open window to the front.",
         category: Category::Window,
+        risk: Risk::Safe,
         params: &[Param {
             name: "window",
             kind: ParamKind::Window,
@@ -160,6 +186,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Minimise window",
         summary: "Send one window to the dock.",
         category: Category::Window,
+        risk: Risk::Safe,
         params: &[Param {
             name: "window",
             kind: ParamKind::Window,
@@ -172,6 +199,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Re-tile the workspace",
         summary: "Run a tiling pass now, putting every window back in its slot.",
         category: Category::Layout,
+        risk: Risk::Safe,
         params: NO_PARAMS,
         keywords: &["tile", "arrange", "fix", "reset windows"],
     },
@@ -180,6 +208,9 @@ pub const ACTIONS: &[Action] = &[
         title: "Save this layout",
         summary: "Keep the current arrangement for this set of displays.",
         category: Category::Layout,
+        // Overwrites the arrangement saved for these displays, but the current
+        // one is on screen to look at first, and saving again re-does it.
+        risk: Risk::Safe,
         params: NO_PARAMS,
         keywords: &["store", "keep", "remember"],
     },
@@ -188,6 +219,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Edit the layout",
         summary: "Open edit mode, where slot borders can be dragged.",
         category: Category::Layout,
+        risk: Risk::Safe,
         params: NO_PARAMS,
         keywords: &["slots", "borders", "resize", "split"],
     },
@@ -196,6 +228,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Re-detect displays",
         summary: "Look at the connected displays again and pick the layout for them.",
         category: Category::Display,
+        risk: Risk::Safe,
         params: NO_PARAMS,
         keywords: &["monitors", "screens", "rescan", "refresh"],
     },
@@ -204,6 +237,9 @@ pub const ACTIONS: &[Action] = &[
         title: "Windows taskbar",
         summary: "Hide the native Windows taskbar and use the dock instead, or put it back.",
         category: Category::Shell,
+        // Significant, but not irreversible: four routes put the taskbar back,
+        // and asking every time would make the one people use daily annoying.
+        risk: Risk::Safe,
         params: &[Param {
             name: "hidden",
             kind: ParamKind::Flag,
@@ -216,6 +252,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Open Developer Layer",
         summary: "Bring the Developer Layer window to the front.",
         category: Category::Shell,
+        risk: Risk::Safe,
         params: NO_PARAMS,
         keywords: &["settings", "dock", "telemetry", "preferences"],
     },
@@ -224,6 +261,7 @@ pub const ACTIONS: &[Action] = &[
         title: "Open the workbench",
         summary: "Bring the mino workbench to the front.",
         category: Category::Shell,
+        risk: Risk::Safe,
         params: NO_PARAMS,
         keywords: &["mino", "terminal", "nushell", "editor", "files", "git"],
     },
@@ -232,6 +270,10 @@ pub const ACTIONS: &[Action] = &[
         title: "Quit Developer Layer",
         summary: "Restore the native taskbar and exit.",
         category: Category::Shell,
+        // The one that cannot be undone by doing it again. A misheard phrase
+        // must not take the user's whole shell down with the dock and the
+        // taskbar mid-work.
+        risk: Risk::Confirm,
         params: NO_PARAMS,
         keywords: &["exit", "close", "shut down"],
     },
@@ -295,6 +337,20 @@ mod tests {
             assert!(action.summary.ends_with('.'), "{}", action.id);
             assert!(action.summary.len() > action.title.len(), "{}", action.id);
         }
+    }
+
+    #[test]
+    fn confirmation_is_reserved_for_what_cannot_be_undone() {
+        // A long list of "are you sure?" is a list people learn to dismiss
+        // without reading, which is worse than no confirmation at all. The bar
+        // is: doing it again does not undo it.
+        let confirming: Vec<_> = ACTIONS
+            .iter()
+            .filter(|a| a.needs_confirmation())
+            .map(|a| a.id.as_str())
+            .collect();
+
+        assert_eq!(confirming, ["shell.quit"]);
     }
 
     #[test]

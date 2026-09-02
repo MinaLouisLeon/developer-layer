@@ -19,7 +19,7 @@ pub mod window;
 
 pub use app::{AppId, AppRef, PinnedApp};
 pub use attributes::{FramePadding, WindowAttributes};
-pub use config::{AtlasConfig, Config, TelemetryConfig};
+pub use config::{AppearanceConfig, AtlasConfig, Config, GeneralConfig, TelemetryConfig};
 pub use dock::{DockAction, DockEntry, DockWindow};
 pub use geometry::{NormalizedRect, Rect};
 pub use metrics::{

@@ -20,6 +20,7 @@ dl-metrics = { workspace = true }
 dl-apps = { workspace = true }
 dl-atlas = { workspace = true }
 dl-archive = { workspace = true }
+dl-voice = { workspace = true }
 
 # The vendored workbench shares this process and this core directly, which is
 # the whole point of embedding it rather than shelling out to a second app.

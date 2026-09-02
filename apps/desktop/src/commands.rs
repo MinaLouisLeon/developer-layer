@@ -24,6 +24,9 @@ pub struct AppState {
     /// Atlas's ranking memory. Its own lock, because the command bar reads it
     /// on every keystroke and the engine lock is held by tiling passes.
     recents: Mutex<dl_atlas::Recents>,
+    /// The voice thread's inbox, and what voice can do as configured.
+    voice: std::sync::mpsc::Sender<crate::voice::Request>,
+    voice_capability: std::sync::Arc<Mutex<dl_atlas::Capability>>,
 }
 
 impl AppState {
@@ -32,12 +35,16 @@ impl AppState {
         metrics: dl_metrics::SharedMetrics,
         apps: dl_apps::AppService,
         recents: dl_atlas::Recents,
+        voice: std::sync::mpsc::Sender<crate::voice::Request>,
+        voice_capability: std::sync::Arc<Mutex<dl_atlas::Capability>>,
     ) -> Self {
         Self {
             engine: Mutex::new(engine),
             metrics,
             apps,
             recents: Mutex::new(recents),
+            voice,
+            voice_capability,
         }
     }
 
@@ -51,6 +58,14 @@ impl AppState {
 
     pub fn recents(&self) -> &Mutex<dl_atlas::Recents> {
         &self.recents
+    }
+
+    pub fn voice(&self) -> &std::sync::mpsc::Sender<crate::voice::Request> {
+        &self.voice
+    }
+
+    pub fn voice_capability(&self) -> &Mutex<dl_atlas::Capability> {
+        &self.voice_capability
     }
 }
 

@@ -4,6 +4,8 @@
 //! GUI over these files, not a replacement for them — they stay hand-editable
 //! and diffable so the config can be version-controlled.
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -105,9 +107,22 @@ impl Default for TelemetryConfig {
 pub struct AtlasConfig {
     pub command_bar_hotkey: String,
     pub voice_enabled: bool,
+    /// Held to speak. The only way to start an utterance today — see
+    /// `dl_voice::WAKE_WORD` — and the one that needs no third-party account.
+    pub push_to_talk_hotkey: String,
     /// Whisper is roughly 200 MB resident, so it loads on wake rather than at
     /// startup.
     pub lazy_load_stt: bool,
+    /// The Whisper model file. Absent means voice cannot transcribe, which is
+    /// reported rather than silently ignored.
+    pub voice_model: Option<PathBuf>,
+    /// Whether Atlas answers out loud. Off by default: a shell that talks
+    /// unprompted is a shell people turn off entirely.
+    pub speak_replies: bool,
+    /// Picovoice access key, for a wake word this build does not yet have.
+    pub picovoice_key: Option<String>,
+    /// The trained "Atlas" keyword, likewise.
+    pub wake_word: Option<PathBuf>,
     /// OpenAI-compatible endpoint exposed by LM Studio.
     pub llm_endpoint: Option<String>,
 }
@@ -117,7 +132,15 @@ impl Default for AtlasConfig {
         Self {
             command_bar_hotkey: "Alt+Space".into(),
             voice_enabled: false,
+            // Ctrl+Alt rather than a single modifier: this one is *held*, so a
+            // combination people rest their hands on would open the microphone
+            // by accident.
+            push_to_talk_hotkey: "Ctrl+Alt+A".into(),
             lazy_load_stt: true,
+            voice_model: None,
+            speak_replies: false,
+            picovoice_key: None,
+            wake_word: None,
             llm_endpoint: None,
         }
     }

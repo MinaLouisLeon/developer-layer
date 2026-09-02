@@ -2,10 +2,33 @@
 
 export type AtlasConfig = { commandBarHotkey: string, voiceEnabled: boolean, 
 /**
+ * Held to speak. The only way to start an utterance today — see
+ * `dl_voice::WAKE_WORD` — and the one that needs no third-party account.
+ */
+pushToTalkHotkey: string, 
+/**
  * Whisper is roughly 200 MB resident, so it loads on wake rather than at
  * startup.
  */
 lazyLoadStt: boolean, 
+/**
+ * The Whisper model file. Absent means voice cannot transcribe, which is
+ * reported rather than silently ignored.
+ */
+voiceModel: string | null, 
+/**
+ * Whether Atlas answers out loud. Off by default: a shell that talks
+ * unprompted is a shell people turn off entirely.
+ */
+speakReplies: boolean, 
+/**
+ * Picovoice access key, for a wake word this build does not yet have.
+ */
+picovoiceKey: string | null, 
+/**
+ * The trained "Atlas" keyword, likewise.
+ */
+wakeWord: string | null, 
 /**
  * OpenAI-compatible endpoint exposed by LM Studio.
  */

@@ -141,3 +141,95 @@ body {
   color: var(--atlas-text-faint);
   font-size: var(--atlas-text-xs);
 }
+
+/* The voice strip. */
+.atlas__voice {
+  display: flex;
+  align-items: center;
+  gap: var(--atlas-space-2);
+  padding: var(--atlas-space-2) var(--atlas-space-4);
+  border-top: 1px solid var(--atlas-hairline);
+  font-size: var(--atlas-text-sm);
+  color: var(--atlas-text-muted);
+}
+
+.atlas__voice--muted {
+  color: var(--atlas-text-faint);
+  font-size: var(--atlas-text-xs);
+}
+
+.atlas__voice-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atlas__voice-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--atlas-text-faint);
+}
+
+.atlas__voice-dot--listening {
+  background: var(--atlas-accent);
+  /* The one animation in the shell. It runs only while the microphone is
+     actually open, which is exactly when a person should be able to tell at a
+     glance that it is. */
+  animation: atlas-pulse 1.4s var(--atlas-ease) infinite;
+}
+
+.atlas__voice-dot--thinking {
+  background: var(--atlas-warn);
+}
+
+.atlas__voice-dot--speaking {
+  background: var(--atlas-ok);
+}
+
+@keyframes atlas-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--atlas-accent-glow);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+/* Respecting this matters more here than usual: the pulse sits in the corner
+   of the eye for as long as the microphone is open. */
+@media (prefers-reduced-motion: reduce) {
+  .atlas__voice-dot--listening {
+    animation: none;
+  }
+}
+
+.atlas__voice--asking {
+  color: var(--atlas-text);
+  justify-content: space-between;
+}
+
+.atlas__voice-answers {
+  display: flex;
+  gap: var(--atlas-space-2);
+}
+
+.atlas__voice-answers button {
+  padding: var(--atlas-space-1) var(--atlas-space-3);
+  border: 1px solid var(--atlas-hairline-strong);
+  border-radius: var(--atlas-radius);
+  background: var(--atlas-raised);
+  color: var(--atlas-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.atlas__voice-answers button:focus-visible {
+  outline: 1px solid var(--atlas-accent);
+  outline-offset: 1px;
+}
