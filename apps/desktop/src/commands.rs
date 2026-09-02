@@ -21,6 +21,9 @@ pub struct AppState {
     engine: Mutex<Engine>,
     metrics: dl_metrics::SharedMetrics,
     apps: dl_apps::AppService,
+    /// Atlas's ranking memory. Its own lock, because the command bar reads it
+    /// on every keystroke and the engine lock is held by tiling passes.
+    recents: Mutex<dl_atlas::Recents>,
 }
 
 impl AppState {
@@ -28,12 +31,26 @@ impl AppState {
         engine: Engine,
         metrics: dl_metrics::SharedMetrics,
         apps: dl_apps::AppService,
+        recents: dl_atlas::Recents,
     ) -> Self {
         Self {
             engine: Mutex::new(engine),
             metrics,
             apps,
+            recents: Mutex::new(recents),
         }
+    }
+
+    pub fn engine(&self) -> &Mutex<Engine> {
+        &self.engine
+    }
+
+    pub fn apps(&self) -> &dl_apps::AppService {
+        &self.apps
+    }
+
+    pub fn recents(&self) -> &Mutex<dl_atlas::Recents> {
+        &self.recents
     }
 }
 

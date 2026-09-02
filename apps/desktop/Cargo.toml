@@ -29,6 +29,8 @@ tauri = { version = "2", features = [] }
 # The workbench's two plugins, and only its. See apps/desktop/capabilities.
 tauri-plugin-dialog = "2.0.4"
 tauri-plugin-opener = "2.5.4"
+# Both global hotkeys: the command bar, and the route back from a hidden taskbar.
+tauri-plugin-global-shortcut = "2"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }

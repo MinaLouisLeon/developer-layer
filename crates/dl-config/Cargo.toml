@@ -11,6 +11,7 @@ description = "Loading and saving Developer Layer configuration as TOML."
 dl-core = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 toml = "0.9"
 
 [dev-dependencies]

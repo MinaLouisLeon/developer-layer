@@ -47,7 +47,7 @@ jobs:
 
       - name: Generated TypeScript is up to date
         run: |
-          cargo test -p dl-core -p dl-engine export_bindings
+          cargo test -p dl-core -p dl-engine -p dl-metrics -p dl-archive -p dl-atlas export_bindings
           git diff --exit-code -- apps/ui/shared/src/generated \
             || (echo "::error::Generated bindings are stale. Run 'npm run gen:types' and commit." && exit 1)
 

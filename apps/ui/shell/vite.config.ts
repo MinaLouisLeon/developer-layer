@@ -22,13 +22,16 @@ export default defineConfig({
     target: "chrome110",
     sourcemap: true,
     rollupOptions: {
-      // Two pages, one bundle. The workbench is a separate Tauri window rather
-      // than a component, so it gets its own document — and building it here
-      // rather than as its own Vite project is what makes `/mino.html` resolve
-      // the same way on the dev server and in the bundle.
+      // Three pages, one bundle. The workbench and the command bar are
+      // separate Tauri windows rather than components — one is tiled like any
+      // application, the other floats over everything — so each gets its own
+      // document. Building them here rather than as their own Vite projects is
+      // what makes `/mino.html` and `/atlas.html` resolve the same way on the
+      // dev server and in the bundle.
       input: {
         shell: fileURLToPath(new URL("./index.html", import.meta.url)),
         mino: fileURLToPath(new URL("./mino.html", import.meta.url)),
+        atlas: fileURLToPath(new URL("./atlas.html", import.meta.url)),
       },
     },
   },

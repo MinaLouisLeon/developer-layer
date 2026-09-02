@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas</title>
+  </head>
+  <body>
+    <!--
+      The command bar's page. Its own window rather than an overlay inside the
+      shell: it has to appear over whatever the user is looking at, and a
+      transparent always-on-top window that skips the taskbar is the only thing
+      that can. Skipping the taskbar also makes it a tool window on Windows,
+      which is what stops the slot engine tiling our own overlay.
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/atlas/main.tsx"></script>
+  </body>
+</html>

@@ -4,8 +4,9 @@ A Windows 11 shell replacement built around a strict no-overlap grid. Every
 application and the telemetry panel tile into assigned slots across two or three
 displays, with an embedded Nushell workbench and a voice assistant called Atlas.
 
-**Status:** phase 06. The slot engine, telemetry, dock, taskbar replacement and
-the embedded workbench are in; Atlas and macOS remain.
+**Status:** phase 07. The slot engine, telemetry, dock, taskbar replacement and
+the embedded workbench and the Atlas command bar are in; voice, the LM
+Studio agent and macOS remain.
 
 ## The workbench
 
@@ -41,7 +42,7 @@ crates/
   dl-config        TOML persistence under %APPDATA%
   dl-metrics       telemetry sampling: sysinfo, DXGI, PDH, NVML
   dl-apps          application resolution, icons and launching
-  dl-atlas         command registry, wake word, speech, phases 07-09
+  dl-atlas         command registry and ranking; wake word and speech, 08-09
   dl-archive       WinRAR console tools — no GUI is ever launched
 apps/
   desktop          Tauri app: command dispatch and window lifecycle
@@ -102,7 +103,7 @@ which is the first real check for anything touching Win32.
 | 04 | Dock as launcher ✅ |
 | 05 | Taskbar replacement and its guardian process ✅ |
 | 06 | mino-workbench embed and archive actions ✅ |
-| 07 | Atlas command bar |
+| 07 | Atlas command bar ✅ |
 | 08 | Atlas voice |
 | 09 | LM Studio agent |
 | 10 | Title-bar theming and macOS |

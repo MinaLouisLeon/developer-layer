@@ -37,3 +37,4 @@ export type { DockWindow } from "./generated/DockWindow";
 export type { ArchiveOutcome } from "./generated/ArchiveOutcome";
 export type { Overwrite } from "./generated/Overwrite";
 export type { Compression } from "./generated/Compression";
+export type { AtlasHit } from "./generated/AtlasHit";

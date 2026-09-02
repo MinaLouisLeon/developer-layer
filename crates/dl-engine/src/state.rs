@@ -284,6 +284,42 @@ impl Engine {
         self.foreground = window;
     }
 
+    /// Bring one window to the front, restoring it first if it is minimised.
+    ///
+    /// Restoring is part of focusing rather than a separate step: a minimised
+    /// window that is merely activated stays in the dock, so the user asked
+    /// for it and nothing appeared. The reason map is cleared with it, or a
+    /// later display reconnect would try to restore a window already back.
+    pub fn focus_window(&mut self, window: WindowId) -> Result<()> {
+        let _ = self.shell.restore_window(window);
+        self.minimize_reasons.remove(&window);
+        self.shell
+            .focus_window(window)
+            .map_err(|e| EngineError::Platform(e.to_string()))
+    }
+
+    /// Send one window to the dock.
+    pub fn minimize_window(&mut self, window: WindowId) -> Result<()> {
+        self.shell
+            .minimize_window(window)
+            .map_err(|e| EngineError::Platform(e.to_string()))?;
+        // Asked for by name, so it is the user minimising it and a later
+        // display reconnect must not resurrect it.
+        self.minimize_reasons.insert(window, MinimizeReason::User);
+        Ok(())
+    }
+
+    /// Bring a set of minimised windows back, best effort.
+    ///
+    /// Best effort because one window having closed between the palette being
+    /// built and this running is not a reason to leave the rest in the dock.
+    pub fn restore_windows(&mut self, windows: &[WindowId]) {
+        for window in windows {
+            let _ = self.shell.restore_window(*window);
+            self.minimize_reasons.remove(window);
+        }
+    }
+
     /// Perform the action a dock click implies, returning what was done.
     pub fn click_dock_entry(&mut self, entry: &DockEntry) -> Result<DockAction> {
         let action = dock::on_click(entry, self.foreground);

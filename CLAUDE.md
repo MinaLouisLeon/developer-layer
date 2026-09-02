@@ -94,6 +94,29 @@ raise it explicitly rather than quietly building something else.
   file the archive menu touches. Run it before every push that changes
   anything under `vendor/`.
 
+- **Every action Atlas can perform is declared once, in `dl-atlas::action`.**
+  The command bar reads it now and phase 09's tool-calling reads the same
+  declarations; a `match` in the command bar instead would make adding the LLM
+  a rewrite. A registry entry with no arm in `plan` is a row the bar shows and
+  then refuses to run, which `every_action_in_the_registry_can_be_planned`
+  exists to catch.
+- **A hotkey with no modifier is refused.** It registers successfully and then
+  swallows that key across the whole desktop — bind the bar to `Space` and
+  nothing on the machine can type one again. The OS reports no error, so
+  `dl-atlas::hotkey` is the only place it can be caught, and a bad accelerator
+  is a startup error rather than a hotkey that silently never fires.
+- **The command bar window sets `skipTaskbar`**, which is `WS_EX_TOOLWINDOW` on
+  Windows, which is what makes the classifier ignore it. Without that the slot
+  engine tiles our own overlay into the user's workspace.
+- **The UI hands back an invocation key, never a list index.** It is re-parsed
+  and re-validated against a fresh snapshot, so a row chosen from a palette
+  built a minute ago cannot run whatever has since taken that position, and a
+  closed window is refused rather than focused through a recycled handle.
+- **Recents live in their own file, not in `config.toml`.** The layout file is
+  written when the user arranges something; recents are written on every
+  command. A corrupt recents file is ignored, which is the opposite of the rule
+  the config lives under — and right, because it holds no work the user did.
+
 ## Known Win32 traps
 
 These are documented because each one silently produces a broken-looking result

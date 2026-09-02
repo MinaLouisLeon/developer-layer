@@ -15,7 +15,7 @@
     "dev": "npm run dev -w @developer-layer/shell",
     "build": "npm run build -w @developer-layer/shell",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "gen:types": "cargo test -p dl-core -p dl-engine -p dl-metrics -p dl-archive export_bindings",
+    "gen:types": "cargo test -p dl-core -p dl-engine -p dl-metrics -p dl-archive -p dl-atlas export_bindings",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
     "test:ui": "npm run test -w @mino/ui"

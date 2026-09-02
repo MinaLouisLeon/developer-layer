@@ -30,6 +30,21 @@
         "resizable": true,
         "decorations": true,
         "visible": true
+      },
+      {
+        "label": "atlas",
+        "title": "Atlas",
+        "url": "atlas.html",
+        "width": 720,
+        "height": 440,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "center": true,
+        "shadow": false,
+        "visible": false
       }
     ],
     "security": {

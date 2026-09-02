@@ -11,3 +11,5 @@ description = "Atlas command registry, wake word, speech."
 dl-core = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+ts-rs = { workspace = true }
+nucleo-matcher = "0.3.1"

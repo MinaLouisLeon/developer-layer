@@ -266,6 +266,23 @@ mod tests {
     }
 
     #[test]
+    fn the_atlas_command_bar_is_ignored_because_it_is_a_tool_window() {
+        // Our own overlay floats over everything and must never be tiled into
+        // somebody's workspace. It is declared with `skipTaskbar` in
+        // `tauri.conf.json`, which is `WS_EX_TOOLWINDOW` on Windows — so this
+        // rule is what actually keeps it out of the grid, and it would be an
+        // easy thing to lose while tidying the classifier.
+        let mut bar = window();
+        bar.is_tool_window = true;
+        bar.title = "Atlas".into();
+        // Ordinary in every other respect: visible, resizable, big enough.
+        bar.outer_bounds = Rect::new(600, 300, 720, 440);
+        bar.frame_bounds = Rect::new(600, 300, 720, 440);
+
+        assert!(Rules::new().classify(&bar, None).is_ignored());
+    }
+
+    #[test]
     fn minimized_windows_stay_manageable_so_the_dock_can_restore_them() {
         // Minimised windows are not visible and report degenerate bounds, but
         // dropping them here would make them unrecoverable from the dock —
