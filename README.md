@@ -14,6 +14,22 @@ Installers are attached to each [release](../../releases). They are not
 code-signed, so SmartScreen will warn; see the release notes for what that
 means and for how to get your taskbar back if you turn that feature on.
 
+### The beta channel
+
+Merging into **`beta`** builds a Windows `.exe` installer and publishes it as a
+pre-release, tagged `beta-<n>`. Each merge gets its own release rather than
+replacing the last one, so a beta that misbehaves can be rolled back to the one
+before it.
+
+```
+git switch beta && git merge <your-branch> && git push
+```
+
+The tests run before the bundle, so a beta whose tests fail never produces an
+installer. A `v*` tag builds the same thing plus an MSI; the workflow can also
+be run by hand from the Actions tab, which builds without publishing anything
+and is how the bundle gets proven before a merge or a tag.
+
 ## Voice
 
 Hold the push-to-talk key and say what you want. What was heard is matched

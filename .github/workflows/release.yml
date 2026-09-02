@@ -1,9 +1,13 @@
 name: Release
 
-# Two triggers on purpose. `workflow_dispatch` is how the bundle gets proven
-# *before* a tag exists — `tauri build` had never run at all until this
-# workflow, so the installers were unverified while everything else was green.
-# Tagging then publishes what has already been shown to build.
+# Three ways in, and they differ only in what they produce:
+#
+#   push to `beta`   — a beta installer, .exe only, published as a pre-release.
+#                      This is the channel: merge into `beta` and a build the
+#                      user can install comes out the other end.
+#   push of a v* tag — both installers, published as a versioned pre-release.
+#   manual           — builds without publishing, so the bundle can be proven
+#                      before anything is tagged or merged.
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +16,7 @@ on:
         type: boolean
         default: false
   push:
+    branches: [beta]
     tags: ["v*"]
 
 permissions:
@@ -22,7 +27,7 @@ env:
 
 jobs:
   windows:
-    name: Installers (Windows)
+    name: Installer (Windows)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,31 +43,81 @@ jobs:
 
       - run: npm ci
 
-      # The release build is the first thing that compiles the whole workspace
-      # with optimisations and links it, so it is also the first thing that
-      # would find an optimisation-only failure. `tauri build` runs the
-      # frontend build itself through `beforeBuildCommand`.
-      - name: Build the installers
-        run: npm run tauri -- build --verbose
+      # What this run is for. Decided once, in one place, rather than repeated
+      # as a condition on every step below.
+      - name: Plan
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./apps/desktop/tauri.conf.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      # Named explicitly rather than globbed into the release, so a bundler
-      # that silently produced nothing fails here instead of publishing an
-      # empty release.
-      - name: Collect the installers
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # A tagged release gets both installers; some people prefer an MSI
+            # for deployment tooling.
+            echo "bundles=msi,nsis"                >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF#refs/tags/}"    >> "$GITHUB_OUTPUT"
+            echo "name=Developer Layer ${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+            echo "label=$version"                  >> "$GITHUB_OUTPUT"
+            echo "publish=true"                    >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/beta ]]; then
+            # The beta channel: .exe only, and a tag of its own per build so a
+            # beta that misbehaves can be rolled back to the one before it.
+            echo "bundles=nsis"                             >> "$GITHUB_OUTPUT"
+            echo "tag=beta-${GITHUB_RUN_NUMBER}"            >> "$GITHUB_OUTPUT"
+            echo "name=Developer Layer $version-beta.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "label=$version-beta.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "publish=true"                             >> "$GITHUB_OUTPUT"
+          else
+            echo "bundles=nsis"       >> "$GITHUB_OUTPUT"
+            echo "tag="               >> "$GITHUB_OUTPUT"
+            echo "name="              >> "$GITHUB_OUTPUT"
+            echo "label=$version-dev" >> "$GITHUB_OUTPUT"
+            echo "publish=${{ inputs.publish }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Before the bundle, not after. CI runs on this push too, but it runs in
+      # parallel — without this, a beta whose tests fail would still publish an
+      # installer, and the whole point of the channel is that what comes out of
+      # it is installable. Debug rather than release: the release profile uses
+      # LTO, and linking every test binary through it costs far more than the
+      # separate debug compile does.
+      - name: Tests
+        if: steps.plan.outputs.publish == 'true'
+        run: cargo test --workspace --exclude mino-core
+
+      - name: Build the installer
+        run: npm run tauri -- build --bundles ${{ steps.plan.outputs.bundles }}
+
+      # Named explicitly rather than globbed, so a bundler that silently
+      # produced nothing fails here instead of publishing an empty release.
+      # Renamed on the way out: Tauri's own name carries a space, and the
+      # label carries the beta number so a downloaded file can be identified
+      # months later.
+      - name: Collect
+        id: collect
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          msi=$(find target/release/bundle/msi -name '*.msi' -print -quit)
-          nsis=$(find target/release/bundle/nsis -name '*-setup.exe' -print -quit)
-          test -n "$msi"  || { echo "::error::no MSI was produced"; exit 1; }
-          test -n "$nsis" || { echo "::error::no NSIS installer was produced"; exit 1; }
-          cp "$msi" "$nsis" dist/
+          label='${{ steps.plan.outputs.label }}'
+
+          nsis=$(find target/release/bundle/nsis -name '*-setup.exe' -print -quit 2>/dev/null || true)
+          test -n "$nsis" || { echo "::error::no .exe installer was produced"; exit 1; }
+          cp "$nsis" "dist/DeveloperLayer-${label}-x64-setup.exe"
+
+          if [[ '${{ steps.plan.outputs.bundles }}' == *msi* ]]; then
+            msi=$(find target/release/bundle/msi -name '*.msi' -print -quit 2>/dev/null || true)
+            test -n "$msi" || { echo "::error::no MSI was produced"; exit 1; }
+            cp "$msi" "dist/DeveloperLayer-${label}-x64.msi"
+          fi
+
           ls -l dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: developer-layer-installers
+          name: developer-layer-${{ steps.plan.outputs.label }}
           path: dist/*
           if-no-files-found: error
 
@@ -70,12 +125,17 @@ jobs:
       # release that does not say so invites somebody to install a shell
       # replacement expecting a finished one.
       - name: Publish
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+        if: steps.plan.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          draft: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          tag_name: ${{ steps.plan.outputs.tag }}
+          name: ${{ steps.plan.outputs.name }}
+          draft: ${{ steps.plan.outputs.tag == '' }}
           prerelease: true
+          # Every build here is a beta; none should displace a stable release
+          # as the one GitHub offers by default.
+          make_latest: false
           generate_release_notes: true
           body_path: docs/RELEASE_NOTES.md
           fail_on_unmatched_files: true

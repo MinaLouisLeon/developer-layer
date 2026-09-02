@@ -11,8 +11,9 @@ goes wrong" before turning anything on.
 
 ## Installing
 
-Two installers are attached. Either works; `.msi` is the quieter one, the
-`-setup.exe` is NSIS and offers an install location.
+Run the attached `-setup.exe`. Tagged releases also carry an `.msi`, which is
+the quieter of the two if you would rather it did not ask anything; beta builds
+are `.exe` only.
 
 **Windows will warn you.** The installer is not code-signed — a certificate
 costs a few hundred pounds a year and this is a personal project — so

@@ -31,7 +31,9 @@ for what to expect and how to get out of trouble.
   dropped when idle, and an optional Porcupine wake word. Refuses to act on a
   phrase it is not confident about.
 - **Start at logon**, elevated, through a Task Scheduler entry.
-- **Release workflow** producing MSI and NSIS installers.
+- **Release workflow** producing MSI and NSIS installers, and a **beta
+  channel**: merging into `beta` builds a Windows `.exe` and publishes it as a
+  pre-release, with the tests run first so a failing merge never ships one.
 
 ### Notes
 
